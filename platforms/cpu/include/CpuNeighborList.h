@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2013-2015 Stanford University and the Authors.      *
+ * Portions copyright (c) 2013-2016 Stanford University and the Authors.      *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -35,6 +35,7 @@
 #include "AlignedArray.h"
 #include "RealVec.h"
 #include "windowsExportCpu.h"
+#include "openmm/internal/gmx_atomic.h"
 #include "openmm/internal/ThreadPool.h"
 #include <set>
 #include <utility>
@@ -50,6 +51,7 @@ public:
     void computeNeighborList(int numAtoms, const AlignedArray<float>& atomLocations, const std::vector<std::set<int> >& exclusions,
             const RealVec* periodicBoxVectors, bool usePeriodic, float maxDistance, ThreadPool& threads);
     int getNumBlocks() const;
+    int getBlockSize() const;
     const std::vector<int>& getSortedAtoms() const;
     const std::vector<int>& getBlockNeighbors(int blockIndex) const;
     const std::vector<char>& getBlockExclusions(int blockIndex) const;
@@ -74,6 +76,7 @@ private:
     int numAtoms;
     bool usePeriodic;
     float maxDistance;
+    gmx_atomic_t atomicCounter;
 };
 
 } // namespace OpenMM

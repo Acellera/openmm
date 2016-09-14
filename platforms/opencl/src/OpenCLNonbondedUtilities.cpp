@@ -6,7 +6,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2009-2015 Stanford University and the Authors.      *
+ * Portions copyright (c) 2009-2016 Stanford University and the Authors.      *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -57,7 +57,7 @@ private:
 OpenCLNonbondedUtilities::OpenCLNonbondedUtilities(OpenCLContext& context) : context(context), useCutoff(false), usePeriodic(false), anyExclusions(false), usePadding(true),
         numForceBuffers(0), exclusionIndices(NULL), exclusionRowIndices(NULL), exclusionTiles(NULL), exclusions(NULL), interactingTiles(NULL), interactingAtoms(NULL),
         interactionCount(NULL), blockCenter(NULL), blockBoundingBox(NULL), sortedBlocks(NULL), sortedBlockCenter(NULL), sortedBlockBoundingBox(NULL),
-        oldPositions(NULL), rebuildNeighborList(NULL), blockSorter(NULL), forceRebuildNeighborList(true), lastCutoff(0.0), groupFlags(0) {
+        oldPositions(NULL), rebuildNeighborList(NULL), blockSorter(NULL), pinnedCountBuffer(NULL), pinnedCountMemory(NULL), forceRebuildNeighborList(true), lastCutoff(0.0), groupFlags(0) {
     // Decide how many thread blocks and force buffers to use.
 
     deviceIsCpu = (context.getDevice().getInfo<CL_DEVICE_TYPE>() == CL_DEVICE_TYPE_CPU);
@@ -90,6 +90,8 @@ OpenCLNonbondedUtilities::OpenCLNonbondedUtilities(OpenCLContext& context) : con
             numForceBuffers = numForceThreadBlocks*forceThreadBlockSize/OpenCLContext::TileSize;
         }
     }
+    pinnedCountBuffer = new cl::Buffer(context.getContext(), CL_MEM_ALLOC_HOST_PTR, sizeof(int));
+    pinnedCountMemory = (int*) context.getQueue().enqueueMapBuffer(*pinnedCountBuffer, CL_TRUE, CL_MAP_READ, 0, sizeof(int));
 }
 
 OpenCLNonbondedUtilities::~OpenCLNonbondedUtilities() {
@@ -123,6 +125,8 @@ OpenCLNonbondedUtilities::~OpenCLNonbondedUtilities() {
         delete rebuildNeighborList;
     if (blockSorter != NULL)
         delete blockSorter;
+    if (pinnedCountBuffer != NULL)
+        delete pinnedCountBuffer;
 }
 
 void OpenCLNonbondedUtilities::addInteraction(bool usesCutoff, bool usesPeriodic, bool usesExclusions, double cutoffDistance, const vector<vector<int> >& exclusionList, const string& kernel, int forceGroup) {
@@ -158,6 +162,19 @@ void OpenCLNonbondedUtilities::addArgument(const ParameterInfo& parameter) {
     arguments.push_back(parameter);
 }
 
+string OpenCLNonbondedUtilities::addEnergyParameterDerivative(const string& param) {
+    // See if the parameter has already been added.
+    
+    int index;
+    for (index = 0; index < energyParameterDerivatives.size(); index++)
+        if (param == energyParameterDerivatives[index])
+            break;
+    if (index == energyParameterDerivatives.size())
+        energyParameterDerivatives.push_back(param);
+    context.addEnergyParameterDerivative(param);
+    return string("energyParamDeriv")+context.intToString(index);
+}
+
 void OpenCLNonbondedUtilities::requestExclusions(const vector<vector<int> >& exclusionList) {
     if (anyExclusions) {
         bool sameExclusions = (exclusionList.size() == atomExclusions.size());
@@ -180,6 +197,22 @@ void OpenCLNonbondedUtilities::requestExclusions(const vector<vector<int> >& exc
 }
 
 static bool compareUshort2(mm_ushort2 a, mm_ushort2 b) {
+    // This version is used on devices with SIMD width of 32 or less.  It sorts tiles to improve cache efficiency.
+
+    return ((a.y < b.y) || (a.y == b.y && a.x < b.x));
+}
+
+static bool compareUshort2LargeSIMD(mm_ushort2 a, mm_ushort2 b) {
+    // This version is used on devices with SIMD width greater than 32.  It puts diagonal tiles before off-diagonal
+    // ones to reduce thread divergence.
+    
+    if (a.x == a.y) {
+        if (b.x == b.y)
+            return (a.x < b.x);
+        return true;
+    }
+    if (b.x == b.y)
+        return false;
     return ((a.y < b.y) || (a.y == b.y && a.x < b.x));
 }
 
@@ -212,7 +245,7 @@ void OpenCLNonbondedUtilities::initialize(const System& system) {
     vector<mm_ushort2> exclusionTilesVec;
     for (set<pair<int, int> >::const_iterator iter = tilesWithExclusions.begin(); iter != tilesWithExclusions.end(); ++iter)
         exclusionTilesVec.push_back(mm_ushort2((unsigned short) iter->first, (unsigned short) iter->second));
-    sort(exclusionTilesVec.begin(), exclusionTilesVec.end(), compareUshort2);
+    sort(exclusionTilesVec.begin(), exclusionTilesVec.end(), context.getSIMDWidth() <= 32 ? compareUshort2 : compareUshort2LargeSIMD);
     exclusionTiles = OpenCLArray::create<mm_ushort2>(context, exclusionTilesVec.size(), "exclusionTiles");
     exclusionTiles->upload(exclusionTilesVec);
     map<pair<int, int>, int> exclusionTileMap;
@@ -341,45 +374,46 @@ void OpenCLNonbondedUtilities::prepareInteractions(int forceGroups) {
 
     if (lastCutoff != kernels.cutoffDistance)
         forceRebuildNeighborList = true;
-    bool rebuild = false;
-    do {
-        setPeriodicBoxArgs(context, kernels.findBlockBoundsKernel, 1);
-        context.executeKernel(kernels.findBlockBoundsKernel, context.getNumAtoms());
-        blockSorter->sort(*sortedBlocks);
-        kernels.sortBoxDataKernel.setArg<cl_int>(9, forceRebuildNeighborList);
-        context.executeKernel(kernels.sortBoxDataKernel, context.getNumAtoms());
-        setPeriodicBoxArgs(context, kernels.findInteractingBlocksKernel, 0);
-        context.executeKernel(kernels.findInteractingBlocksKernel, context.getNumAtoms(), interactingBlocksThreadBlockSize);
-        forceRebuildNeighborList = false;
-        if (context.getComputeForceCount() == 1)
-            rebuild = updateNeighborListSize(); // This is the first time step, so check whether our initial guess was large enough.
-    } while (rebuild);
+    setPeriodicBoxArgs(context, kernels.findBlockBoundsKernel, 1);
+    context.executeKernel(kernels.findBlockBoundsKernel, context.getNumAtoms());
+    blockSorter->sort(*sortedBlocks);
+    kernels.sortBoxDataKernel.setArg<cl_int>(9, forceRebuildNeighborList);
+    context.executeKernel(kernels.sortBoxDataKernel, context.getNumAtoms());
+    setPeriodicBoxArgs(context, kernels.findInteractingBlocksKernel, 0);
+    context.executeKernel(kernels.findInteractingBlocksKernel, context.getNumAtoms(), interactingBlocksThreadBlockSize);
+    forceRebuildNeighborList = false;
     lastCutoff = kernels.cutoffDistance;
+    context.getQueue().enqueueReadBuffer(interactionCount->getDeviceBuffer(), CL_FALSE, 0, sizeof(int), pinnedCountMemory, NULL, &downloadCountEvent); 
 }
 
-void OpenCLNonbondedUtilities::computeInteractions(int forceGroups) {
+void OpenCLNonbondedUtilities::computeInteractions(int forceGroups, bool includeForces, bool includeEnergy) {
     if ((forceGroups&groupFlags) == 0)
         return;
     KernelSet& kernels = groupKernels[forceGroups];
     if (kernels.hasForces) {
+        cl::Kernel& kernel = (includeForces ? (includeEnergy ? kernels.forceEnergyKernel : kernels.forceKernel) : kernels.energyKernel);
+        if (*reinterpret_cast<cl_kernel*>(&kernel) == NULL)
+            kernel = createInteractionKernel(kernels.source, parameters, arguments, true, true, forceGroups, includeForces, includeEnergy);
         if (useCutoff)
-            setPeriodicBoxArgs(context, kernels.forceKernel, 9);
-        context.executeKernel(kernels.forceKernel, numForceThreadBlocks*forceThreadBlockSize, forceThreadBlockSize);
+            setPeriodicBoxArgs(context, kernel, 9);
+        context.executeKernel(kernel, numForceThreadBlocks*forceThreadBlockSize, forceThreadBlockSize);
+    }
+    if (useCutoff && numTiles > 0) {
+        downloadCountEvent.wait();
+        updateNeighborListSize();
     }
 }
 
 bool OpenCLNonbondedUtilities::updateNeighborListSize() {
     if (!useCutoff)
         return false;
-    unsigned int* pinnedInteractionCount = (unsigned int*) context.getPinnedBuffer();
-    interactionCount->download(pinnedInteractionCount);
-    if (pinnedInteractionCount[0] <= (unsigned int) interactingTiles->getSize())
+    if (pinnedCountMemory[0] <= (unsigned int) interactingTiles->getSize())
         return false;
 
     // The most recent timestep had too many interactions to fit in the arrays.  Make the arrays bigger to prevent
     // this from happening in the future.
 
-    int maxTiles = (int) (1.2*pinnedInteractionCount[0]);
+    int maxTiles = (int) (1.2*pinnedCountMemory[0]);
     int totalTiles = context.getNumAtomBlocks()*(context.getNumAtomBlocks()+1)/2;
     if (maxTiles > totalTiles)
         maxTiles = totalTiles;
@@ -390,14 +424,28 @@ bool OpenCLNonbondedUtilities::updateNeighborListSize() {
     interactingTiles = OpenCLArray::create<cl_int>(context, maxTiles, "interactingTiles");
     interactingAtoms = OpenCLArray::create<cl_int>(context, OpenCLContext::TileSize*maxTiles, "interactingAtoms");
     for (map<int, KernelSet>::iterator iter = groupKernels.begin(); iter != groupKernels.end(); ++iter) {
-        iter->second.forceKernel.setArg<cl::Buffer>(7, interactingTiles->getDeviceBuffer());
-        iter->second.forceKernel.setArg<cl_uint>(14, maxTiles);
-        iter->second.forceKernel.setArg<cl::Buffer>(17, interactingAtoms->getDeviceBuffer());
-        iter->second.findInteractingBlocksKernel.setArg<cl::Buffer>(6, interactingTiles->getDeviceBuffer());
-        iter->second.findInteractingBlocksKernel.setArg<cl::Buffer>(7, interactingAtoms->getDeviceBuffer());
-        iter->second.findInteractingBlocksKernel.setArg<cl_uint>(9, maxTiles);
+        KernelSet& kernels = iter->second;
+        if (*reinterpret_cast<cl_kernel*>(&kernels.forceKernel) != NULL) {
+            kernels.forceKernel.setArg<cl::Buffer>(7, interactingTiles->getDeviceBuffer());
+            kernels.forceKernel.setArg<cl_uint>(14, maxTiles);
+            kernels.forceKernel.setArg<cl::Buffer>(17, interactingAtoms->getDeviceBuffer());
+        }
+        if (*reinterpret_cast<cl_kernel*>(&kernels.energyKernel) != NULL) {
+            kernels.energyKernel.setArg<cl::Buffer>(7, interactingTiles->getDeviceBuffer());
+            kernels.energyKernel.setArg<cl_uint>(14, maxTiles);
+            kernels.energyKernel.setArg<cl::Buffer>(17, interactingAtoms->getDeviceBuffer());
+        }
+        if (*reinterpret_cast<cl_kernel*>(&kernels.forceEnergyKernel) != NULL) {
+            kernels.forceEnergyKernel.setArg<cl::Buffer>(7, interactingTiles->getDeviceBuffer());
+            kernels.forceEnergyKernel.setArg<cl_uint>(14, maxTiles);
+            kernels.forceEnergyKernel.setArg<cl::Buffer>(17, interactingAtoms->getDeviceBuffer());
+        }
+        kernels.findInteractingBlocksKernel.setArg<cl::Buffer>(6, interactingTiles->getDeviceBuffer());
+        kernels.findInteractingBlocksKernel.setArg<cl::Buffer>(7, interactingAtoms->getDeviceBuffer());
+        kernels.findInteractingBlocksKernel.setArg<cl_uint>(9, maxTiles);
     }
     forceRebuildNeighborList = true;
+    context.setForcesValid(false);
     return true;
 }
 
@@ -416,10 +464,21 @@ void OpenCLNonbondedUtilities::setAtomBlockRange(double startFraction, double en
         // We are using a cutoff, and the kernels have already been created.
 
         for (map<int, KernelSet>::iterator iter = groupKernels.begin(); iter != groupKernels.end(); ++iter) {
-            iter->second.forceKernel.setArg<cl_uint>(5, startTileIndex);
-            iter->second.forceKernel.setArg<cl_uint>(6, numTiles);
-            iter->second.findInteractingBlocksKernel.setArg<cl_uint>(10, startBlockIndex);
-            iter->second.findInteractingBlocksKernel.setArg<cl_uint>(11, numBlocks);
+            KernelSet& kernels = iter->second;
+            if (*reinterpret_cast<cl_kernel*>(&kernels.forceKernel) != NULL) {
+                kernels.forceKernel.setArg<cl_uint>(5, startTileIndex);
+                kernels.forceKernel.setArg<cl_uint>(6, numTiles);
+            }
+            if (*reinterpret_cast<cl_kernel*>(&kernels.energyKernel) != NULL) {
+                kernels.energyKernel.setArg<cl_uint>(5, startTileIndex);
+                kernels.energyKernel.setArg<cl_uint>(6, numTiles);
+            }
+            if (*reinterpret_cast<cl_kernel*>(&kernels.forceEnergyKernel) != NULL) {
+                kernels.forceEnergyKernel.setArg<cl_uint>(5, startTileIndex);
+                kernels.forceEnergyKernel.setArg<cl_uint>(6, numTiles);
+            }
+            kernels.findInteractingBlocksKernel.setArg<cl_uint>(10, startBlockIndex);
+            kernels.findInteractingBlocksKernel.setArg<cl_uint>(11, numBlocks);
         }
         forceRebuildNeighborList = true;
     }
@@ -437,8 +496,7 @@ void OpenCLNonbondedUtilities::createKernelsForGroups(int groups) {
     }
     kernels.hasForces = (source.size() > 0);
     kernels.cutoffDistance = cutoff;
-    if (kernels.hasForces)
-        kernels.forceKernel = createInteractionKernel(source, parameters, arguments, true, true, groups);
+    kernels.source = source;
     if (useCutoff) {
         double padding = (usePadding ? 0.1*cutoff : 0.0);
         double paddedCutoff = cutoff+padding;
@@ -508,7 +566,7 @@ void OpenCLNonbondedUtilities::createKernelsForGroups(int groups) {
     groupKernels[groups] = kernels;
 }
 
-cl::Kernel OpenCLNonbondedUtilities::createInteractionKernel(const string& source, const vector<ParameterInfo>& params, const vector<ParameterInfo>& arguments, bool useExclusions, bool isSymmetric, int groups) {
+cl::Kernel OpenCLNonbondedUtilities::createInteractionKernel(const string& source, const vector<ParameterInfo>& params, const vector<ParameterInfo>& arguments, bool useExclusions, bool isSymmetric, int groups, bool includeForces, bool includeEnergy) {
     map<string, string> replacements;
     replacements["COMPUTE_INTERACTION"] = source;
     const string suffixes[] = {"x", "y", "z", "w"};
@@ -546,6 +604,8 @@ cl::Kernel OpenCLNonbondedUtilities::createInteractionKernel(const string& sourc
             args << arguments[i].getName();
         }
     }
+    if (energyParameterDerivatives.size() > 0)
+        args << ", __global mixed* restrict energyParamDerivs";
     replacements["PARAMETER_ARGUMENTS"] = args.str();
     stringstream loadLocal1;
     for (int i = 0; i < (int) params.size(); i++) {
@@ -596,6 +656,18 @@ cl::Kernel OpenCLNonbondedUtilities::createInteractionKernel(const string& sourc
         }
     }
     replacements["LOAD_ATOM2_PARAMETERS"] = load2j.str();
+    stringstream initDerivs;
+    for (int i = 0; i < energyParameterDerivatives.size(); i++)
+        initDerivs<<"mixed energyParamDeriv"<<i<<" = 0;\n";
+    replacements["INIT_DERIVATIVES"] = initDerivs.str();
+    stringstream saveDerivs;
+    const vector<string>& allParamDerivNames = context.getEnergyParamDerivNames();
+    int numDerivs = allParamDerivNames.size();
+    for (int i = 0; i < energyParameterDerivatives.size(); i++)
+        for (int index = 0; index < numDerivs; index++)
+            if (allParamDerivNames[index] == energyParameterDerivatives[i])
+                saveDerivs<<"energyParamDerivs[get_global_id(0)*"<<numDerivs<<"+"<<index<<"] += energyParamDeriv"<<i<<";\n";
+    replacements["SAVE_DERIVATIVES"] = saveDerivs.str();
     map<string, string> defines;
     if (useCutoff)
         defines["USE_CUTOFF"] = "1";
@@ -607,6 +679,10 @@ cl::Kernel OpenCLNonbondedUtilities::createInteractionKernel(const string& sourc
         defines["USE_SYMMETRIC"] = "1";
     if (useCutoff && context.getSIMDWidth() < 32)
         defines["PRUNE_BY_CUTOFF"] = "1";
+    if (includeForces)
+        defines["INCLUDE_FORCES"] = "1";
+    if (includeEnergy)
+        defines["INCLUDE_ENERGY"] = "1";
     defines["FORCE_WORK_GROUP_SIZE"] = context.intToString(forceThreadBlockSize);
     double maxCutoff = 0.0;
     for (int i = 0; i < 32; i++) {
@@ -667,5 +743,7 @@ cl::Kernel OpenCLNonbondedUtilities::createInteractionKernel(const string& sourc
     for (int i = 0; i < (int) arguments.size(); i++) {
         kernel.setArg<cl::Memory>(index++, arguments[i].getMemory());
     }
+    if (energyParameterDerivatives.size() > 0)
+        kernel.setArg<cl::Memory>(index++, context.getEnergyParamDerivBuffer().getDeviceBuffer());
     return kernel;
 }

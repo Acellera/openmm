@@ -296,6 +296,38 @@ class TestAmberPrmtopFile(unittest.TestCase):
                 diff = norm(f1-f2)
                 self.assertTrue(diff < 0.1 or diff/norm(f1) < 1e-4)
 
+    def testSwitchFunction(self):
+        """ Tests the switching function option in AmberPrmtopFile """
+        system = prmtop1.createSystem(nonbondedMethod=PME,
+                                      nonbondedCutoff=1*nanometer,
+                                      switchDistance=0.8*nanometer)
+        for force in system.getForces():
+            if isinstance(force, NonbondedForce):
+                self.assertTrue(force.getUseSwitchingFunction())
+                self.assertEqual(force.getSwitchingDistance(), 0.8*nanometer)
+                break
+        else:
+            assert False, 'Did not find expected nonbonded force!'
+
+        # Check error handling
+        system = prmtop1.createSystem(nonbondedMethod=PME,
+                                      nonbondedCutoff=1*nanometer)
+        for force in system.getForces():
+            if isinstance(force, NonbondedForce):
+                self.assertFalse(force.getUseSwitchingFunction())
+                break
+        else:
+            assert False, 'Did not find expected nonbonded force!'
+
+        self.assertRaises(ValueError, lambda:
+                prmtop1.createSystem(nonbondedMethod=PME,
+                    nonbondedCutoff=1*nanometer, switchDistance=-1)
+        )
+        self.assertRaises(ValueError, lambda:
+                prmtop1.createSystem(nonbondedMethod=PME,
+                    nonbondedCutoff=1*nanometer, switchDistance=1.2)
+        )
+
     def test_with_dcd_reporter(self):
         """Check that an amber simulation like the docs example works with a DCD reporter."""
 
@@ -328,6 +360,18 @@ class TestAmberPrmtopFile(unittest.TestCase):
         except TypeError as e:
             # Make sure it says something about chamber
             self.assertTrue('chamber' in str(e).lower())
+
+    def testGBneckRadii(self):
+        """ Tests that GBneck radii limits are correctly enforced """
+        from simtk.openmm.app.internal.customgbforces import GBSAGBnForce
+        f = GBSAGBnForce()
+        # Make sure legal parameters do not raise
+        f.addParticle([0, 0.1, 0.5])
+        f.addParticle([0, 0.2, 0.5])
+        f.addParticle([0, 0.15, 0.5])
+        # Now make sure that out-of-range parameters *do* raise
+        self.assertRaises(ValueError, lambda: f.addParticle([0, 0.9, 0.5]))
+        self.assertRaises(ValueError, lambda: f.addParticle([0, 0.21, 0.5]))
 
 if __name__ == '__main__':
     unittest.main()

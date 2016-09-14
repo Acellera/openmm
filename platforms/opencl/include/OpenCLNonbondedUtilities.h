@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2009-2013 Stanford University and the Authors.      *
+ * Portions copyright (c) 2009-2016 Stanford University and the Authors.      *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -89,6 +89,15 @@ public:
      */
     void addArgument(const ParameterInfo& parameter);
     /**
+     * Register that the interaction kernel will be computing the derivative of the potential energy
+     * with respect to a parameter.
+     * 
+     * @param param   the name of the parameter
+     * @return the variable that will be used to accumulate the derivative.  Any code you pass to addInteraction() should
+     * add its contributions to this variable.
+     */
+    std::string addEnergyParameterDerivative(const std::string& param);
+    /**
      * Specify the list of exclusions that an interaction outside the default kernel will depend on.
      * 
      * @param exclusionList  for each atom, specifies the list of other atoms whose interactions should be excluded
@@ -150,8 +159,12 @@ public:
     void prepareInteractions(int forceGroups);
     /**
      * Compute the nonbonded interactions.
+     * 
+     * @param forceGroups    the flags specifying which force groups to include
+     * @param includeForces  whether to compute forces
+     * @param includeEnergy  whether to compute the potential energy
      */
-    void computeInteractions(int forceGroups);
+    void computeInteractions(int forceGroups, bool includeForces, bool includeEnergy);
     /**
      * Check to see if the neighbor list arrays are large enough, and make them bigger if necessary.
      *
@@ -247,8 +260,10 @@ public:
      * @param useExclusions specifies whether exclusions are applied to this interaction
      * @param isSymmetric   specifies whether the interaction is symmetric
      * @param groups        the set of force groups this kernel is for
+     * @param includeForces whether this kernel should compute forces
+     * @param includeEnergy whether this kernel should compute potential energy
      */
-    cl::Kernel createInteractionKernel(const std::string& source, const std::vector<ParameterInfo>& params, const std::vector<ParameterInfo>& arguments, bool useExclusions, bool isSymmetric, int groups);
+    cl::Kernel createInteractionKernel(const std::string& source, const std::vector<ParameterInfo>& params, const std::vector<ParameterInfo>& arguments, bool useExclusions, bool isSymmetric, int groups, bool includeForces, bool includeEnergy);
     /**
      * Create the set of kernels that will be needed for a particular combination of force groups.
      * 
@@ -275,9 +290,13 @@ private:
     OpenCLArray* oldPositions;
     OpenCLArray* rebuildNeighborList;
     OpenCLSort* blockSorter;
+    cl::Event downloadCountEvent;
+    cl::Buffer* pinnedCountBuffer;
+    int* pinnedCountMemory;
     std::vector<std::vector<int> > atomExclusions;
     std::vector<ParameterInfo> parameters;
     std::vector<ParameterInfo> arguments;
+    std::vector<std::string> energyParameterDerivatives;
     std::map<int, double> groupCutoff;
     std::map<int, std::string> groupKernelSource;
     double lastCutoff;
@@ -294,7 +313,8 @@ class OpenCLNonbondedUtilities::KernelSet {
 public:
     bool hasForces;
     double cutoffDistance;
-    cl::Kernel forceKernel;
+    std::string source;
+    cl::Kernel forceKernel, energyKernel, forceEnergyKernel;
     cl::Kernel findBlockBoundsKernel;
     cl::Kernel sortBoxDataKernel;
     cl::Kernel findInteractingBlocksKernel;

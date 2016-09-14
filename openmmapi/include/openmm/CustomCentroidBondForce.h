@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2008-2015 Stanford University and the Authors.      *
+ * Portions copyright (c) 2008-2016 Stanford University and the Authors.      *
  * Authors: Peter Eastman                                                     *
  * Contributors:                                                              *
  *                                                                            *
@@ -85,7 +85,7 @@ namespace OpenMM {
  *
  * As an example, the following code creates a CustomCentroidBondForce that implements a harmonic force between the
  * centers of mass of two groups of particles.
- * 
+ *
  * <tt><pre>
  * CustomCentroidBondForce* force = new CustomCentroidBondForce(2, "0.5*k*distance(g1,g2)^2");
  * force->addPerBondParameter("k");
@@ -98,6 +98,10 @@ namespace OpenMM {
  * bondParameters.push_back(k);
  * force->addBond(bondGroups, bondParameters);
  * </pre></tt>
+ * 
+ * This class also has the ability to compute derivatives of the potential energy with respect to global parameters.
+ * Call addEnergyParameterDerivative() to request that the derivative with respect to a particular parameter be
+ * computed.  You can then query its value in a Context by calling getState() on it.
  *
  * Expressions may involve the operators + (add), - (subtract), * (multiply), / (divide), and ^ (power), and the following
  * functions: sqrt, exp, log, sin, cos, sec, csc, tan, cot, asin, acos, atan, sinh, cosh, tanh, erf, erfc, min, max, abs, floor, ceil, step, delta, select.  All trigonometric functions
@@ -149,6 +153,13 @@ public:
      */
     int getNumGlobalParameters() const {
         return globalParameters.size();
+    }
+    /**
+     * Get the number of global parameters with respect to which the derivative of the energy
+     * should be computed.
+     */
+    int getNumEnergyParameterDerivatives() const {
+        return energyParameterDerivatives.size();
     }
     /**
      * Get the number of tabulated functions that have been defined.
@@ -226,9 +237,24 @@ public:
      * Set the default value of a global parameter.
      *
      * @param index          the index of the parameter for which to set the default value
-     * @param name           the default value of the parameter
+     * @param defaultValue   the default value of the parameter
      */
     void setGlobalParameterDefaultValue(int index, double defaultValue);
+    /**
+     * Request that this Force compute the derivative of its energy with respect to a global parameter.
+     * The parameter must have already been added with addGlobalParameter().
+     *
+     * @param name             the name of the parameter
+     */
+    void addEnergyParameterDerivative(const std::string& name);
+    /**
+     * Get the name of a global parameter with respect to which this Force should compute the
+     * derivative of the energy.
+     *
+     * @param index     the index of the parameter derivative, between 0 and getNumEnergyParameterDerivatives()
+     * @return the parameter name
+     */
+    const std::string& getEnergyParameterDerivativeName(int index) const;
     /**
      * Add a particle group.
      *
@@ -237,15 +263,15 @@ public:
      *                    If this is omitted, then particle masses will be used as weights.
      * @return the index of the group that was added
      */
-    int addGroup(const std::vector<int>& particles, const std::vector<double>& weights = std::vector<double>());
+    int addGroup(const std::vector<int>& particles, const std::vector<double>& weights=std::vector<double>());
     /**
      * Get the properties of a group.
      *
-     * @param index       the index of the group to get
-     * @param particles   the indices of the particles in the group
-     * @param weights     the weight used for each particle when computing the center position.
-     *                    If no weights were specified, this vector will be empty indicating that particle
-     *                    masses should be used as weights.
+     * @param index            the index of the group to get
+     * @param[out] particles   the indices of the particles in the group
+     * @param[out] weights     the weight used for each particle when computing the center position.
+     *                         If no weights were specified, this vector will be empty indicating that particle
+     *                         masses should be used as weights.
      */
     void getGroupParameters(int index, std::vector<int>& particles, std::vector<double>& weights) const;
     /**
@@ -256,7 +282,7 @@ public:
      * @param weights     the weight to use for each particle when computing the center position.
      *                    If this is omitted, then particle masses will be used as weights.
      */
-    void setGroupParameters(int index, const std::vector<int>& particles, const std::vector<double>& weights = std::vector<double>());
+    void setGroupParameters(int index, const std::vector<int>& particles, const std::vector<double>& weights=std::vector<double>());
     /**
      * Add a bond to the force
      *
@@ -264,13 +290,13 @@ public:
      * @param parameters  the list of per-bond parameter values for the new bond
      * @return the index of the bond that was added
      */
-    int addBond(const std::vector<int>& groups, const std::vector<double>& parameters);
+    int addBond(const std::vector<int>& groups, const std::vector<double>& parameters=std::vector<double>());
     /**
      * Get the properties of a bond.
      *
-     * @param index       the index of the bond to get
-     * @param groups      the indices of the groups in the bond
-     * @param parameters  the list of per-bond parameter values for the bond
+     * @param      index       the index of the bond to get
+     * @param[out] groups      the indices of the groups in the bond
+     * @param[out] parameters  the list of per-bond parameter values for the bond
      */
     void getBondParameters(int index, std::vector<int>& groups, std::vector<double>& parameters) const;
     /**
@@ -280,7 +306,7 @@ public:
      * @param groups      the indices of the groups in the bond
      * @param parameters  the list of per-bond parameter values for the bond
      */
-    void setBondParameters(int index, const std::vector<int>& groups, const std::vector<double>& parameters);
+    void setBondParameters(int index, const std::vector<int>& groups, const std::vector<double>& parameters=std::vector<double>());
     /**
      * Add a tabulated function that may appear in the energy expression.
      *
@@ -325,14 +351,17 @@ public:
      */
     void updateParametersInContext(Context& context);
     /**
+     * Set whether this force should apply periodic boundary conditions when calculating displacements.
+     * Usually this is not appropriate for bonded forces, but there are situations when it can be useful.
+     */
+    void setUsesPeriodicBoundaryConditions(bool periodic);
+    /**
      * Returns whether or not this force makes use of periodic boundary
      * conditions.
      *
-     * @returns false
+     * @returns true if force uses PBC and false otherwise
      */
-    bool usesPeriodicBoundaryConditions() const {
-        return false;
-    }
+    bool usesPeriodicBoundaryConditions() const;
 protected:
     ForceImpl* createImpl() const;
 private:
@@ -348,6 +377,8 @@ private:
     std::vector<GroupInfo> groups;
     std::vector<BondInfo> bonds;
     std::vector<FunctionInfo> functions;
+    std::vector<int> energyParameterDerivatives;
+    bool usePeriodic;
 };
 
 /**

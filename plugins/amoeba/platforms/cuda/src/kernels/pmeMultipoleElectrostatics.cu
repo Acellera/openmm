@@ -56,7 +56,7 @@ __device__ float computePScaleFactor(uint2 covalent, unsigned int polarizationGr
 }
 
 __device__ void computeOneInteraction(AtomData& atom1, AtomData& atom2, bool hasExclusions, float dScale, float pScale, float mScale, float forceFactor,
-                                      real& energy, real4 periodicBoxSize, real4 invPeriodicBoxSize, real4 periodicBoxVecX, real4 periodicBoxVecY, real4 periodicBoxVecZ) {
+                                      mixed& energy, real4 periodicBoxSize, real4 invPeriodicBoxSize, real4 periodicBoxVecX, real4 periodicBoxVecY, real4 periodicBoxVecZ) {
     // Compute the displacement.
     
     real3 delta;
@@ -365,7 +365,7 @@ __device__ void computeOneInteraction(AtomData& atom1, AtomData& atom2, bool has
     real iEIY = qiUinpI.x*Vijp[1] + qiUindI.x*Vijd[1] - qiUinpI.y*Vijp[0] - qiUindI.y*Vijd[0];
     real iEJY = qiUinpJ.x*Vjip[1] + qiUindJ.x*Vjid[1] - qiUinpJ.y*Vjip[0] - qiUindJ.y*Vjid[0];
 
-#ifdef USE_MUTUAL_POLARIZATION
+#ifdef MUTUAL_POLARIZATION
     // Uind-Uind terms (m=0)
     real eCoef = -fourThirds*rInvVec[3]*(3*(thole_d0 + bVec[3]) + alphaRVec[3]*X);
     real dCoef = rInvVec[4]*(6*(dthole_d0 + bVec[3]) + 4*alphaRVec[5]*X);
@@ -411,10 +411,10 @@ __device__ void computeOneInteraction(AtomData& atom1, AtomData& atom2, bool has
 /**
  * Compute the self energy and self torque.
  */
-__device__ void computeSelfEnergyAndTorque(AtomData& atom1, real& energy) {
+__device__ void computeSelfEnergyAndTorque(AtomData& atom1, mixed& energy) {
     real cii = atom1.q*atom1.q;
     real3 dipole = make_real3(atom1.sphericalDipole.y, atom1.sphericalDipole.z, atom1.sphericalDipole.x);
-    real dii = dot(dipole, dipole+atom1.inducedDipole);
+    real dii = dot(dipole, dipole+(atom1.inducedDipole+atom1.inducedDipolePolar)*0.5f);
 #ifdef INCLUDE_QUADRUPOLES
     real qii = (atom1.sphericalQuadrupole[0]*atom1.sphericalQuadrupole[0] +
                 atom1.sphericalQuadrupole[1]*atom1.sphericalQuadrupole[1] +
@@ -439,7 +439,7 @@ __device__ void computeSelfEnergyAndTorque(AtomData& atom1, real& energy) {
  * Compute electrostatic interactions.
  */
 extern "C" __global__ void computeElectrostatics(
-        unsigned long long* __restrict__ forceBuffers, unsigned long long* __restrict__ torqueBuffers, real* __restrict__ energyBuffer,
+        unsigned long long* __restrict__ forceBuffers, unsigned long long* __restrict__ torqueBuffers, mixed* __restrict__ energyBuffer,
         const real4* __restrict__ posq, const uint2* __restrict__ covalentFlags, const unsigned int* __restrict__ polarizationGroupFlags,
         const ushort2* __restrict__ exclusionTiles, unsigned int startTileIndex, unsigned int numTileIndices,
 #ifdef USE_CUTOFF
@@ -453,7 +453,7 @@ extern "C" __global__ void computeElectrostatics(
     const unsigned int warp = (blockIdx.x*blockDim.x+threadIdx.x)/TILE_SIZE;
     const unsigned int tgx = threadIdx.x & (TILE_SIZE-1);
     const unsigned int tbx = threadIdx.x - tgx;
-    real energy = 0;
+    mixed energy = 0;
     __shared__ AtomData localData[THREAD_BLOCK_SIZE];
 
     // First loop: process tiles that contain exclusions.
@@ -555,6 +555,8 @@ extern "C" __global__ void computeElectrostatics(
 
 #ifdef USE_CUTOFF
     const unsigned int numTiles = interactionCount[0];
+    if (numTiles > maxTiles)
+        return; // There wasn't enough memory for the neighbor list.
     int pos = (int) (numTiles > maxTiles ? startTileIndex+warp*(long long)numTileIndices/totalWarps : warp*(long long)numTiles/totalWarps);
     int end = (int) (numTiles > maxTiles ? startTileIndex+(warp+1)*(long long)numTileIndices/totalWarps : (warp+1)*(long long)numTiles/totalWarps);
 #else
@@ -575,34 +577,31 @@ extern "C" __global__ void computeElectrostatics(
         
         int x, y;
 #ifdef USE_CUTOFF
-        if (numTiles <= maxTiles)
-            x = tiles[pos];
-        else
-#endif
-        {
-            y = (int) floor(NUM_BLOCKS+0.5f-SQRT((NUM_BLOCKS+0.5f)*(NUM_BLOCKS+0.5f)-2*pos));
+        x = tiles[pos];
+#else
+        y = (int) floor(NUM_BLOCKS+0.5f-SQRT((NUM_BLOCKS+0.5f)*(NUM_BLOCKS+0.5f)-2*pos));
+        x = (pos-y*NUM_BLOCKS+y*(y+1)/2);
+        if (x < y || x >= NUM_BLOCKS) { // Occasionally happens due to roundoff error.
+            y += (x < y ? -1 : 1);
             x = (pos-y*NUM_BLOCKS+y*(y+1)/2);
-            if (x < y || x >= NUM_BLOCKS) { // Occasionally happens due to roundoff error.
-                y += (x < y ? -1 : 1);
-                x = (pos-y*NUM_BLOCKS+y*(y+1)/2);
-            }
-
-            // Skip over tiles that have exclusions, since they were already processed.
-
-            while (skipTiles[tbx+TILE_SIZE-1] < pos) {
-                if (skipBase+tgx < NUM_TILES_WITH_EXCLUSIONS) {
-                    ushort2 tile = exclusionTiles[skipBase+tgx];
-                    skipTiles[threadIdx.x] = tile.x + tile.y*NUM_BLOCKS - tile.y*(tile.y+1)/2;
-                }
-                else
-                    skipTiles[threadIdx.x] = end;
-                skipBase += TILE_SIZE;            
-                currentSkipIndex = tbx;
-            }
-            while (skipTiles[currentSkipIndex] < pos)
-                currentSkipIndex++;
-            includeTile = (skipTiles[currentSkipIndex] != pos);
         }
+
+        // Skip over tiles that have exclusions, since they were already processed.
+
+        while (skipTiles[tbx+TILE_SIZE-1] < pos) {
+            if (skipBase+tgx < NUM_TILES_WITH_EXCLUSIONS) {
+                ushort2 tile = exclusionTiles[skipBase+tgx];
+                skipTiles[threadIdx.x] = tile.x + tile.y*NUM_BLOCKS - tile.y*(tile.y+1)/2;
+            }
+            else
+                skipTiles[threadIdx.x] = end;
+            skipBase += TILE_SIZE;            
+            currentSkipIndex = tbx;
+        }
+        while (skipTiles[currentSkipIndex] < pos)
+            currentSkipIndex++;
+        includeTile = (skipTiles[currentSkipIndex] != pos);
+#endif
         if (includeTile) {
             unsigned int atom1 = x*TILE_SIZE + tgx;
 
@@ -613,7 +612,7 @@ extern "C" __global__ void computeElectrostatics(
             data.force = make_real3(0);
             data.torque = make_real3(0);
 #ifdef USE_CUTOFF
-            unsigned int j = (numTiles <= maxTiles ? interactingAtoms[pos*TILE_SIZE+tgx] : y*TILE_SIZE + tgx);
+            unsigned int j = interactingAtoms[pos*TILE_SIZE+tgx];
 #else
             unsigned int j = y*TILE_SIZE + tgx;
 #endif
