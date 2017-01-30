@@ -37,6 +37,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <limits>
 
 using namespace OpenMM;
 using namespace std;
