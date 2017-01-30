@@ -141,7 +141,7 @@ void LocalEnergyMinimizer::minimize(Context& context, double tolerance, int maxI
 
     // Repeatedly minimize, steadily increasing the strength of the springs until all constraints are satisfied.
 
-    double prevMaxError = 1e10;
+    double prevMaxError = std::numeric_limits<double>::max();
     while (true) {
         // Perform the minimization.
 
