@@ -19,27 +19,33 @@ dependencies = [
 "Download URL" = "https://openmm.org"
 
 [tool.setuptools_scm]
+root = "../.."
 
 [tool.setuptools.packages.find]
 include = ["openmm*"]
 
 
-[tool.setuptools.exclude-package-data]
-"*" = ["*.c", "*.cpp", "*.h", "*.cuh", "*.cu", ".gitignore"]
+# [tool.setuptools.exclude-package-data]
+# "*" = ["*.c", "*.cpp", "*.h", "*.cuh", "*.cu", ".gitignore"]
 
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm>=8", "numpy", "cython"]
+requires = ["setuptools>=78", "setuptools-scm>=8", "numpy", "cython"]
 build-backend = "setuptools.build_meta"
 
 
 [tool.cibuildwheel]
 skip = ["cp38-*", "pp*", "*win32", "*armv7l", "*_i686", "*_ppc64le", "*_s390x", "*_universal2", "*-musllinux_*"]
 test-requires = ["pytest"]
-test-command = "pytest {project}/tests"
+test-command = "cd {project}/wrappers/python/tests; pytest ."
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
-environment-pass = ["CIBW_ARCHS"]
+environment-pass = ["CIBW_ARCHS", "OPENMM_INCLUDE_PATH", "OPENMM_LIB_PATH", "LD_LIBRARY_PATH"]
 # container-engine = "docker; create_args: --gpus all"
+
+[tool.cibuildwheel.linux]
+repair-wheel-command = [
+  "auditwheel repair --exclude libOpenMM.so --exclude libOpenMMCUDA.so --exclude libOpenMMHIP.so --exclude libOpenMMOpenCL.so --exclude libOpenMMDrude.so --exclude libOpenMMAmoeba.so --exclude libOpenMMRPMD.so --exclude libOpenCL.so.1 --exclude libcuda.so.1 --exclude libcufft.so.11 --exclude libcufft.so.10 --exclude libnvrtc.so.11.2 --exclude libnvrtc.so.12 --exclude libhiprtc.so.6 --exclude libamdhip64.so.6 -w {dest_dir} {wheel}",
+]
 
 # [tool.cibuildwheel.macos]
 # repair-wheel-command = [

@@ -4,7 +4,7 @@ set -e
 set -x
 
 # Install dependencies with yum
-dnf install -y doxygen zip opencl-headers ocl-icd tree
+dnf install -y doxygen zip opencl-headers ocl-icd
 
 # # Install CUDA (nothing)
 
@@ -16,23 +16,26 @@ dnf install -y doxygen zip opencl-headers ocl-icd tree
 
 # Configure build with Cmake
 mkdir -p build
+mkdir -p openmm-install
 cd build
 cmake .. \
-    -DCMAKE_INSTALL_PREFIX=${HOME}/openmm-install \
+    -DCMAKE_INSTALL_PREFIX=openmm-install \
     -DCMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=0' \
     -DOPENMM_BUILD_OPENCL_LIB=ON \
     -DOPENCL_INCLUDE_DIR=/usr/include/CL \
     -DOPENCL_LIBRARY=/usr/lib64/libOpenCL.so.1
 
-tree .
-
 # Build OpenMM
 make -j4 install
 make -j4 PythonInstall
 
-# Build wheel
-export LD_LIBRARY_PATH=${HOME}/openmm-install/lib
-export OPENMM_INCLUDE_PATH=../openmmapi/include
-tree ./python
+cd ..
 
-ls -l ../openmmapi/
+# Build wheel
+export LD_LIBRARY_PATH=openmm-install/lib
+
+cp -r build/python/* wrappers/python/
+cp -r build/openmm-install/include wrappers/python/openmm/
+cp -r build/openmm-install/lib wrappers/python/openmm/
+
+

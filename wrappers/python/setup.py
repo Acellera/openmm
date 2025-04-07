@@ -91,7 +91,7 @@ version = '%(version)s'
 full_version = '%(full_version)s'
 git_revision = '%(git_revision)s'
 release = %(isrelease)s
-openmm_library_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "OpenMM.libs", "lib"))
+openmm_library_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "lib"))
 
 if not release:
     version = full_version
@@ -175,7 +175,7 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
         define_macros.append( (' _MSC_VER', None) )
         extra_compile_args.append('/EHsc')
     else:
-        extra_link_args += ['-Wl,-rpath,$ORIGIN/../OpenMM.libs/lib']
+        extra_link_args += ['-Wl,-rpath,$ORIGIN/lib']
         if platform.system() == 'Darwin':
             extra_compile_args += ['-stdlib=libc++']
             extra_link_args += ['-stdlib=libc++', '-Wl', '-rpath', openmm_lib_path]
