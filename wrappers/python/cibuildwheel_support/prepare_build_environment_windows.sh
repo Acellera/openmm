@@ -33,8 +33,8 @@ cmake -G "NMake Makefiles JOM" \
     -DCMAKE_PREFIX_PATH="openmm-install;C:\Program Files\AMD\ROCm\6.1" \
     -DCMAKE_CXX_COMPILER=cl.exe \
     -DCMAKE_C_COMPILER=cl.exe \
-    -DOPENCL_INCLUDE_DIR="${CUDA_ROOT}/include" \
-    -DOPENCL_LIBRARY="${CUDA_ROOT}/lib/x64/OpenCL.lib" \
+    -DOPENCL_INCLUDE_DIR="${OPENCL_PATH}/include" \
+    -DOPENCL_LIBRARY="${OPENCL_PATH}/lib/x64/OpenCL.lib" \
     -DHIP_PLATFORM=amd \
     ..
 
