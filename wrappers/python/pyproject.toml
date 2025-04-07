@@ -36,11 +36,14 @@ build-backend = "setuptools.build_meta"
 [tool.cibuildwheel]
 skip = ["cp38-*", "pp*", "*win32", "*armv7l", "*_i686", "*_ppc64le", "*_s390x", "*_universal2", "*-musllinux_*"]
 test-requires = ["pytest"]
-test-command = "cd {project}/wrappers/python/tests; pytest ."
+test-command = "cd {project}/wrappers/python/tests && pytest ."
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
 environment-pass = ["ACCELERATOR", "OPENCL_PATH"]
 # container-engine = "docker; create_args: --gpus all"
+
+[tool.cibuildwheel.windows]
+test-command = "cd {project}\\wrappers\\python\\tests && pytest ."
 
 [tool.cibuildwheel.linux]
 repair-wheel-command = [

@@ -169,7 +169,7 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
         define_macros.append( (' _MSC_VER', None) )
         extra_compile_args.append('/EHsc')
     else:
-        extra_link_args += ['-Wl,-rpath,$ORIGIN/lib']
+        extra_link_args += ['-Wl']
         if platform.system() == 'Darwin':
             extra_compile_args += ['-stdlib=libc++']
             extra_link_args += ['-stdlib=libc++', '-Wl', '-rpath', f'@loader_path/{openmm_lib_path}']
