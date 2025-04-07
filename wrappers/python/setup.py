@@ -160,12 +160,8 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
                 libraries[ii]="%s_d" % libraries[ii]
                 sys.stdout.write("%s\n" % libraries[ii])
 
-    openmm_include_path = os.getenv('OPENMM_INCLUDE_PATH')
-    if not openmm_include_path:
-        reportError("Set OPENMM_INCLUDE_PATH to point to the include directory for OpenMM")
-    openmm_lib_path = os.getenv('OPENMM_LIB_PATH')
-    if not openmm_lib_path:
-        reportError("Set OPENMM_LIB_PATH to point to the lib directory for OpenMM")
+    openmm_include_path = 'include'
+    openmm_lib_path = 'openmm/lib'
 
     extra_compile_args=['-std=c++11', '-D_GLIBCXX_USE_CXX11_ABI=0']
     extra_link_args=[]

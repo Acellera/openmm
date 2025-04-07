@@ -8,5 +8,5 @@ recursive-include src       *.txt *.py *.i *.c *.cxx *.h *.sh Doxyfile
 prune src/swig_doxygen/doxygen/html
 prune src/swig_doxygen/doxygen/xml
 global-exclude CMakeLists.txt
-graft openmm/include
 graft openmm/lib
+prune include
