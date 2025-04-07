@@ -91,7 +91,6 @@ version = '%(version)s'
 full_version = '%(full_version)s'
 git_revision = '%(git_revision)s'
 release = %(isrelease)s
-openmm_library_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "lib"))
 
 if not release:
     version = full_version
@@ -119,8 +118,7 @@ if not release:
         a.write(cnt % {'version': version,
                        'full_version' : full_version,
                        'git_revision' : git_revision,
-                       'isrelease': str(IS_RELEASED),
-                       'path': os.getenv('OPENMM_LIB_PATH')})
+                       'isrelease': str(IS_RELEASED)})
 
 
 def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
@@ -174,7 +172,7 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
         extra_link_args += ['-Wl,-rpath,$ORIGIN/lib']
         if platform.system() == 'Darwin':
             extra_compile_args += ['-stdlib=libc++']
-            extra_link_args += ['-stdlib=libc++', '-Wl', '-rpath', openmm_lib_path]
+            extra_link_args += ['-stdlib=libc++', '-Wl', '-rpath', f'@loader_path/{openmm_lib_path}']
             if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ and platform.processor() != 'arm':
                 extra_compile_args += ['-mmacosx-version-min=10.7']
                 extra_link_args += ['-mmacosx-version-min=10.7']
