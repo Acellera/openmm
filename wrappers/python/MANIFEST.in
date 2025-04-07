@@ -9,4 +9,4 @@ prune src/swig_doxygen/doxygen/html
 prune src/swig_doxygen/doxygen/xml
 global-exclude CMakeLists.txt
 graft openmm/lib
-prune include
+graft openmm/include

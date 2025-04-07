@@ -1,3 +1,8 @@
+#! /bin/bash
+
+set -e
+set -x
+
 brew install doxygen swig
 
 mkdir build
@@ -9,5 +14,5 @@ make -j4 PythonInstall
 cd ..
 
 cp -r build/python/* wrappers/python/
-cp -r build/openmm-install/include wrappers/python/
+cp -r build/openmm-install/include wrappers/python/openmm/
 cp -r build/openmm-install/lib wrappers/python/openmm/

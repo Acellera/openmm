@@ -45,5 +45,5 @@ jom -j 4 PythonInstall
 cd ..
 
 cp -r build/python/* wrappers/python/
-cp -r build/openmm-install/include wrappers/python/
+cp -r build/openmm-install/include wrappers/python/openmm/
 cp -r build/openmm-install/lib wrappers/python/openmm/
