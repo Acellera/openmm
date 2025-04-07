@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build wheels on ${{ matrix.os }}-${{ matrix.cuda }}
+    name: Build wheels on ${{ matrix.os }}-${{ matrix.accelerator }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -52,6 +52,14 @@ jobs:
       - name: Activate MSVC
         uses: ilammy/msvc-dev-cmd@v1
         if: matrix.os == 'windows-2019'
+
+      - name: "Install OpenCL"
+        uses: Jimver/cuda-toolkit@v0.2.16
+        if: matrix.os == 'windows-2019'
+        id: cuda-toolkit
+        with:
+          method: "network"
+          sub-packages: '["opencl"]'
 
       - name: Build wheels
         if: matrix.os != 'windows-2019'

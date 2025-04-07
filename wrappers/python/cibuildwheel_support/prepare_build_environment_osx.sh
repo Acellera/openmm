@@ -1,4 +1,4 @@
-brew install doxygen
+brew install doxygen swig
 
 mkdir build
 cd build
