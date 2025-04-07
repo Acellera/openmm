@@ -39,8 +39,8 @@ test-requires = ["pytest"]
 test-command = "cd {project}/wrappers/python/tests; pytest ."
 manylinux-x86_64-image = "manylinux_2_28"
 manylinux-aarch64-image = "manylinux_2_28"
-environment-pass = ["CIBW_ARCHS"]
-# container-engine = "docker; create_args: --gpus all"
+environment-pass = ["ACCELERATOR"]
+container-engine = "docker; create_args: --gpus all"
 
 [tool.cibuildwheel.linux]
 repair-wheel-command = [
