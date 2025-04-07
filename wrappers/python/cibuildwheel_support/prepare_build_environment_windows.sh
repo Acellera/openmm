@@ -39,8 +39,8 @@ cmake -G "NMake Makefiles JOM" \
     ..
 
 # Build OpenMM
-make -j4 install
-make -j4 PythonInstall
+jom -j 4 install
+jom -j 4 PythonInstall
 
 cd ..
 

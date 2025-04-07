@@ -61,6 +61,12 @@ jobs:
           method: "network"
           sub-packages: '["opencl"]'
 
+      - name: "Install dependencies with choco"
+        uses: crazy-max/ghaction-chocolatey@v3
+        if: matrix.os == 'windows-2019'
+        with:
+          args: install doxygen.install jom
+
       - name: Build wheels
         if: matrix.os != 'windows-2019'
         shell: bash -l {0}
