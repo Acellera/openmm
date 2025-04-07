@@ -84,13 +84,14 @@ def writeVersionPy(filename="openmm/version.py", major_version_num=MAJOR_VERSION
     """
 
     cnt = """
+import os
 # THIS FILE IS GENERATED FROM OPENMM SETUP.PY
 short_version = '%(version)s'
 version = '%(version)s'
 full_version = '%(full_version)s'
 git_revision = '%(git_revision)s'
 release = %(isrelease)s
-openmm_library_path = r'%(path)s'
+openmm_library_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "OpenMM.libs", "lib"))
 
 if not release:
     version = full_version
@@ -127,16 +128,6 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
                            build_info=BUILD_INFO):
     from setuptools import Extension
     setupKeywords = {}
-    setupKeywords["name"]              = "OpenMM"
-    setupKeywords["version"]           = "%s.%s.%s%s" % (major_version_num,
-                                                       minor_version_num,
-                                                       build_info,
-                                                       os.getenv('VERSION_SUFFIX', ''))
-    setupKeywords["author"]            = "Peter Eastman"
-    setupKeywords["license"]           = \
-    "Python Software Foundation License (BSD-like)"
-    setupKeywords["url"]               = "https://openmm.org"
-    setupKeywords["download_url"]      = "https://openmm.org"
     setupKeywords["packages"]          = [
                                           "simtk",
                                           "simtk.unit",
@@ -151,21 +142,6 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
                                           "openmm.app.internal.pdbx",
                                           "openmm.app.internal.pdbx.reader",
                                           "openmm.app.internal.pdbx.writer"]
-    setupKeywords["data_files"]        = []
-    setupKeywords["package_data"]      = {"openmm" : [],
-                                          "openmm.app" : ['data/*.xml', 'data/*.pdb', 'data/amber14/*.xml', 'data/charmm36/*.xml', 'data/implicit/*.xml'],
-                                          "openmm.app.internal" : []}
-    setupKeywords["install_requires"]  = ["numpy"]
-    setupKeywords["platforms"]         = ["Linux", "Mac OS X", "Windows"]
-    setupKeywords["description"]       = \
-    "Python wrapper for OpenMM (a C++ MD package)"
-    setupKeywords["long_description"]  = \
-    """OpenMM is a toolkit for molecular simulation. It can be used either as a
-    stand-alone application for running simulations, or as a library you call
-    from your own code. It provides a combination of extreme flexibility
-    (through custom forces and integrators), openness, and high performance
-    (especially on recent GPUs) that make it truly unique among simulation codes.
-    """
 
     define_macros = [('MAJOR_VERSION', major_version_num),
                      ('MINOR_VERSION', minor_version_num)]
@@ -191,7 +167,7 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
     if not openmm_lib_path:
         reportError("Set OPENMM_LIB_PATH to point to the lib directory for OpenMM")
 
-    extra_compile_args=['-std=c++11']
+    extra_compile_args=['-std=c++11', '-D_GLIBCXX_USE_CXX11_ABI=0']
     extra_link_args=[]
     if platform.system() == "Windows":
         define_macros.append( ('WIN32', None) )
@@ -199,6 +175,7 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
         define_macros.append( (' _MSC_VER', None) )
         extra_compile_args.append('/EHsc')
     else:
+        extra_link_args += ['-Wl,-rpath,$ORIGIN/../OpenMM.libs/lib']
         if platform.system() == 'Darwin':
             extra_compile_args += ['-stdlib=libc++']
             extra_link_args += ['-stdlib=libc++', '-Wl', '-rpath', openmm_lib_path]
