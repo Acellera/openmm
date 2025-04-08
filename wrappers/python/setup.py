@@ -85,6 +85,8 @@ def writeVersionPy(filename="openmm/version.py", major_version_num=MAJOR_VERSION
 
     cnt = """
 # THIS FILE IS GENERATED FROM OPENMM SETUP.PY
+from openmm import openmm_library_path
+
 short_version = '%(version)s'
 version = '%(version)s'
 full_version = '%(full_version)s'
