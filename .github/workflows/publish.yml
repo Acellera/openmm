@@ -3,7 +3,6 @@ name: Build wheels and publish
 on:
   workflow_dispatch:
   workflow_call:
-  push:
 
 jobs:
   build:
@@ -67,7 +66,6 @@ jobs:
           CIBW_BEFORE_ALL_LINUX: "wrappers/python/cibuildwheel_support/prepare_build_environment_linux.sh"
           CIBW_BEFORE_ALL_MACOS: "wrappers/python/cibuildwheel_support/prepare_build_environment_osx.sh"
           ACCELERATOR: ${{ matrix.accelerator }}
-          CIBW_BUILD: "cp310-*"
 
       - name: Build wheels
         if: matrix.os == 'windows-2019'
@@ -78,9 +76,89 @@ jobs:
           DISTUTILS_USE_SDK: "1" # Windows requires this to use vc for building
           ACCELERATOR: ${{ matrix.accelerator }}
           CUDA_PATH: ${{ matrix.accelerator == 'cu118' && 'C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.8' || 'C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4' }}
-          CIBW_BUILD: "cp310-*"
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.accelerator }}-cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
+
+  publish-to-accelera-pypi:
+    name: >-
+      Publish Python 🐍 distribution 📦 to Acellera PyPI
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    permissions: # Needed for GCP authentication
+      contents: "read"
+      id-token: "write"
+    strategy:
+      fail-fast: false
+      matrix:
+        accelerator: [cpu, cu118, cu124, hip]
+
+    steps:
+      - uses: actions/checkout@v4 # Needed for GCP authentication for some reason
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_PYPI_SERVICE_ACCOUNT }}
+
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "${{ matrix.accelerator }}-cibw-wheels*"
+          path: dist/
+          merge-multiple: true
+
+      - name: Publish distribution 📦 to Acellera PyPI
+        run: |
+          pip install build twine keyring keyrings.google-artifactregistry-auth
+          pip install -U packaging
+          twine upload --repository-url https://us-central1-python.pkg.dev/pypi-packages-455608/${{ matrix.accelerator }} dist/* --verbose --skip-existing
+
+  github-release:
+    name: >-
+      Sign the Python 🐍 distribution 📦 with Sigstore
+      and upload them to GitHub Release
+    needs:
+      - build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # IMPORTANT: mandatory for making GitHub Releases
+      id-token: write # IMPORTANT: mandatory for sigstore
+
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
+
+      - name: Sign the dists with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v3.0.0
+        with:
+          inputs: >-
+            ./dist/*.whl
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create
+          "$GITHUB_REF_NAME"
+          --repo "$GITHUB_REPOSITORY"
+          --notes ""
+
+      - name: Upload artifact signatures to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        # Upload to GitHub Release using the `gh` CLI.
+        # `dist/` contains the built packages, and the
+        # sigstore-produced signatures and certificates.
+        run: >-
+          gh release upload
+          "$GITHUB_REF_NAME" dist/**
+          --repo "$GITHUB_REPOSITORY"
