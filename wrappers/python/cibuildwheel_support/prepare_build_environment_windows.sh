@@ -23,6 +23,12 @@ if [ "$ACCELERATOR" == "hip" ]; then
     rm HIP.exe
 fi
 
+# Download and extract OpenCL
+curl --netrc-optional -L -nv -o OpenCL-SDK.zip https://github.com/KhronosGroup/OpenCL-SDK/releases/download/v2024.10.24/OpenCL-SDK-v2024.10.24-Win-x64.zip
+unzip OpenCL-SDK.zip
+OPENCL_PATH="$(pwd)/OpenCL-SDK-v2024.10.24-Win-x64"
+
+
 # Configure build with Cmake
 mkdir -p build
 mkdir -p openmm-install
@@ -34,7 +40,7 @@ cmake -G "NMake Makefiles JOM" \
     -DCMAKE_CXX_COMPILER=cl.exe \
     -DCMAKE_C_COMPILER=cl.exe \
     -DOPENCL_INCLUDE_DIR="${OPENCL_PATH}/include" \
-    -DOPENCL_LIBRARY="${OPENCL_PATH}/lib/x64/OpenCL.lib" \
+    -DOPENCL_LIBRARY="${OPENCL_PATH}/lib/OpenCL.lib" \
     -DHIP_PLATFORM=amd \
     ..
 

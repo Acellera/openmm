@@ -53,15 +53,6 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         if: matrix.os == 'windows-2019'
 
-      - name: "Install OpenCL"
-        uses: Jimver/cuda-toolkit@v0.2.16
-        if: matrix.os == 'windows-2019'
-        id: cuda-toolkit
-        with:
-          cuda: ${{ matrix.accelerator == 'cu118' && '11.8' || '12.4' }}
-          method: "network"
-          sub-packages: '["opencl"]'
-
       - name: "Install dependencies with choco"
         uses: crazy-max/ghaction-chocolatey@v3
         if: matrix.os == 'windows-2019'
@@ -75,7 +66,7 @@ jobs:
         env:
           CIBW_BEFORE_ALL_LINUX: "wrappers/python/cibuildwheel_support/prepare_build_environment_linux.sh"
           CIBW_BEFORE_ALL_MACOS: "wrappers/python/cibuildwheel_support/prepare_build_environment_osx.sh"
-          CUDA_VERSION: ${{ matrix.accelerator }}
+          # CUDA_VERSION: ${{ matrix.accelerator }}
           ACCELERATOR: ${{ matrix.accelerator }}
           CIBW_BUILD: "cp310-*"
 
@@ -86,9 +77,8 @@ jobs:
         env:
           CIBW_BEFORE_ALL_WINDOWS: "bash wrappers/python/cibuildwheel_support/prepare_build_environment_windows.sh"
           DISTUTILS_USE_SDK: "1" # Windows requires this to use vc for building
-          CUDA_VERSION: ${{ matrix.accelerator }}
+          # CUDA_VERSION: ${{ matrix.accelerator }}
           ACCELERATOR: ${{ matrix.accelerator }}
-          OPENCL_PATH: "${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
           CIBW_BUILD: "cp310-*"
 
       - uses: actions/upload-artifact@v4
