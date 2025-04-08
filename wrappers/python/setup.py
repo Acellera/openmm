@@ -126,6 +126,10 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
                            build_info=BUILD_INFO):
     from setuptools import Extension
     setupKeywords = {}
+    setupKeywords["version"]           = "%s.%s.%s%s" % (major_version_num,
+                                                       minor_version_num,
+                                                       build_info,
+                                                       os.getenv('VERSION_SUFFIX', ''))
     setupKeywords["packages"]          = [
                                           "simtk",
                                           "simtk.unit",
