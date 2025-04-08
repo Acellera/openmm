@@ -58,6 +58,7 @@ jobs:
         if: matrix.os == 'windows-2019'
         id: cuda-toolkit
         with:
+          cuda: ${{ matrix.accelerator == 'cu118' && '11.8' || '12.4' }}
           method: "network"
           sub-packages: '["opencl"]'
 
@@ -87,8 +88,8 @@ jobs:
           DISTUTILS_USE_SDK: "1" # Windows requires this to use vc for building
           CUDA_VERSION: ${{ matrix.accelerator }}
           ACCELERATOR: ${{ matrix.accelerator }}
-          CIBW_BUILD: "cp310-*"
           OPENCL_PATH: "${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
+          CIBW_BUILD: "cp310-*"
 
       - uses: actions/upload-artifact@v4
         with:
