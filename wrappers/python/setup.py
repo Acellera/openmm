@@ -84,7 +84,6 @@ def writeVersionPy(filename="openmm/version.py", major_version_num=MAJOR_VERSION
     """
 
     cnt = """
-import os
 # THIS FILE IS GENERATED FROM OPENMM SETUP.PY
 short_version = '%(version)s'
 version = '%(version)s'
@@ -144,6 +143,15 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
                                           "openmm.app.internal.pdbx",
                                           "openmm.app.internal.pdbx.reader",
                                           "openmm.app.internal.pdbx.writer"]
+
+    setupKeywords["install_requires"] = ["numpy"]
+    if os.getenv("ACCELERATOR", "") in ("cu118", "cu124"):
+        cuda_ver = os.getenv("ACCELERATOR", "")[2:4]
+        setupKeywords["install_requires"] += [f'nvidia-cuda-runtime-cu{cuda_ver}',
+                                              f'nvidia-cuda-nvcc-cu{cuda_ver}',
+                                              f'nvidia-cuda-nvrtc-cu{cuda_ver}',
+                                              f'nvidia-cuda-cupti-cu{cuda_ver}',
+                                              f'nvidia-cufft-cu{cuda_ver}']
 
     define_macros = [('MAJOR_VERSION', major_version_num),
                      ('MINOR_VERSION', minor_version_num)]
