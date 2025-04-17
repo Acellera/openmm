@@ -17,6 +17,13 @@ if [ "$ACCELERATOR" == "cu124" ]; then
     rm cuda.exe
 fi
 
+if [ "$ACCELERATOR" == "cu126" ]; then
+    CUDA_ROOT="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6"
+    curl --netrc-optional -L -nv -o cuda.exe https://developer.download.nvidia.com/compute/cuda/12.6.0/local_installers/cuda_12.6.0_551.61_windows.exe
+    ./cuda.exe -s nvcc_12.6 nvrtc_12.6 nvrtc_dev_12.6 cudart_12.6 cufft_12.6 cufft_dev_12.6 cuda_profiler_api_12.6
+    rm cuda.exe
+fi
+
 if [ "$ACCELERATOR" == "hip" ]; then
     curl.exe --output HIP.exe --url https://download.amd.com/developer/eula/rocm-hub/AMD-Software-PRO-Edition-24.Q3-Win10-Win11-For-HIP.exe
     ./HIP.exe -install
