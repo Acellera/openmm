@@ -19,7 +19,7 @@ fi
 
 if [ "$ACCELERATOR" == "cu126" ]; then
     CUDA_ROOT="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6"
-    curl --netrc-optional -L -nv -o cuda.exe https://developer.download.nvidia.com/compute/cuda/12.6.0/local_installers/cuda_12.6.0_551.61_windows.exe
+    curl --netrc-optional -L -nv -o cuda.exe https://developer.download.nvidia.com/compute/cuda/12.6.0/local_installers/cuda_12.6.0_560.76_windows.exe
     ./cuda.exe -s nvcc_12.6 nvrtc_12.6 nvrtc_dev_12.6 cudart_12.6 cufft_12.6 cufft_dev_12.6 cuda_profiler_api_12.6
     rm cuda.exe
 fi
