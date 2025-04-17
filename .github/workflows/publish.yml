@@ -100,7 +100,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        accelerator: [cpu, cu118, cu124, hip]
+        accelerator: [cpu, cu118, cu124, cu126, hip]
 
     steps:
       - uses: actions/checkout@v4 # Needed for GCP authentication for some reason
