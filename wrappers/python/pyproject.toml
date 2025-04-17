@@ -16,7 +16,7 @@ classifiers = [
 "Download URL" = "https://openmm.org"
 
 [tool.setuptools.packages.find]
-include = ["openmm*"]
+include = ["openmm*", "simtk*"]
 
 
 # [tool.setuptools.exclude-package-data]
