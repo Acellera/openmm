@@ -34,16 +34,16 @@ if [ "$ACCELERATOR" == "cu124" ]; then
     export CUDA_HOME="/usr/local/cuda"
 fi
 
-if [ "$ACCELERATOR" == "cu126" ]; then
-    # Install CUDA 12.6
+if [ "$ACCELERATOR" == "cu128" ]; then
+    # Install CUDA 12.8
     dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
 
     dnf install --setopt=obsoletes=0 -y \
-        cuda-compiler-12-6-12.6.3-1 \
-        cuda-libraries-12-6-12.6.3-1 \
-        cuda-libraries-devel-12-6-12.6.3-1
+        cuda-compiler-12-8-12.8.1-1 \
+        cuda-libraries-12-8-12.8.1-1 \
+        cuda-libraries-devel-12-8-12.8.1-1
 
-    ln -s cuda-12.6 /usr/local/cuda
+    ln -s cuda-12.8 /usr/local/cuda
 
     export CUDA_HOME="/usr/local/cuda"
 fi
