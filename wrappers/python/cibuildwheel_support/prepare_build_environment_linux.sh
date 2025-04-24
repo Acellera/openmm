@@ -60,7 +60,7 @@ mkdir -p openmm-install
 cd build
 cmake .. \
     -DCMAKE_INSTALL_PREFIX=openmm-install \
-    -DCMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=0' \
+    -DCMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=1' \
     -DOPENMM_BUILD_OPENCL_LIB=ON \
     -DOPENCL_INCLUDE_DIR=/usr/include/CL \
     -DOPENCL_LIBRARY=/usr/lib64/libOpenCL.so.1
