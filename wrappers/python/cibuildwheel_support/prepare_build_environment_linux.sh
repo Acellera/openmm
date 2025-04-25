@@ -18,9 +18,7 @@ if [ "$ACCELERATOR" == "cu118" ]; then
     ln -s cuda-11.8 /usr/local/cuda
 
     export CUDA_HOME="/usr/local/cuda"
-fi
-
-if [ "$ACCELERATOR" == "cu124" ]; then
+elif [ "$ACCELERATOR" == "cu124" ]; then
     # Install CUDA 12.4
     dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
 
@@ -32,9 +30,19 @@ if [ "$ACCELERATOR" == "cu124" ]; then
     ln -s cuda-12.4 /usr/local/cuda
 
     export CUDA_HOME="/usr/local/cuda"
-fi
+elif [ "$ACCELERATOR" == "cu126" ]; then
+    # Install CUDA 12.6
+    dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
 
-if [ "$ACCELERATOR" == "cu128" ]; then
+    dnf install --setopt=obsoletes=0 -y \
+        cuda-compiler-12-6-12.6.3-1 \
+        cuda-libraries-12-6-12.6.3-1 \
+        cuda-libraries-devel-12-6-12.6.3-1
+
+    ln -s cuda-12.4 /usr/local/cuda
+
+    export CUDA_HOME="/usr/local/cuda"
+elif [ "$ACCELERATOR" == "cu128" ]; then
     # Install CUDA 12.8
     dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
 
@@ -46,9 +54,7 @@ if [ "$ACCELERATOR" == "cu128" ]; then
     ln -s cuda-12.8 /usr/local/cuda
 
     export CUDA_HOME="/usr/local/cuda"
-fi
-
-if [ "$ACCELERATOR" == "hip" ]; then
+elif [ "$ACCELERATOR" == "hip" ]; then
     # Install HIP 6.2
     dnf install -y https://repo.radeon.com/amdgpu-install/6.2.2/el/8.10/amdgpu-install-6.2.60202-1.el8.noarch.rpm
     dnf install -y rocm-device-libs hip-devel hip-runtime-amd hipcc

@@ -147,7 +147,7 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
                                           "openmm.app.internal.pdbx.writer"]
 
     setupKeywords["install_requires"] = ["numpy"]
-    if os.getenv("ACCELERATOR", "") in ("cu118", "cu124"):
+    if os.getenv("ACCELERATOR", "").startswith("cu"):
         cuda_ver = os.getenv("ACCELERATOR", "")[2:4]
         setupKeywords["install_requires"] += [f'nvidia-cuda-runtime-cu{cuda_ver}',
                                               f'nvidia-cuda-nvcc-cu{cuda_ver}',
