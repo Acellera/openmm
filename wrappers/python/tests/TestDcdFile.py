@@ -133,7 +133,7 @@ class TestDCDFile(unittest.TestCase):
     def testAppendAtomCountMismatch(self):
         """Test that appending to a DCD file with a different number of atoms raises an error."""
         fname = tempfile.mktemp(suffix='.dcd')
-        pdb = app.PDBFile('systems/alanine-dipeptide-explicit.pdb')
+        pdb = app.PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-explicit.pdb'))
         ff = app.ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology)
 
@@ -166,7 +166,7 @@ class TestDCDFile(unittest.TestCase):
     def testAppendLongCommentBlock(self):
         """Test appending to an existing trajectory with a long comment block."""
         fname = tempfile.mktemp(suffix='.dcd')
-        pdb = app.PDBFile('systems/alanine-dipeptide-implicit.pdb')
+        pdb = app.PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.pdb'))
         ff = app.ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology)
 

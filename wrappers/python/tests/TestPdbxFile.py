@@ -149,7 +149,7 @@ class TestPdbxFile(unittest.TestCase):
 
     def testChemCompBonds(self):
         """Test creating bonds based on chem_comp_bond records."""
-        pdb = PDBxFile('systems/6mvz.cif')
+        pdb = PDBxFile(os.path.join(curr_dir, 'systems', '6mvz.cif'))
 
         def bondCount(res1, atom1, res2, atom2):
             count = 0
