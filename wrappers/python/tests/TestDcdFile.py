@@ -7,6 +7,8 @@ from random import random
 import os
 import struct
 
+curr_dir = os.path.dirname(os.path.abspath(__file__))
+
 
 def _read_dcd_header(file):
     with open(file, "r+b") as f:
@@ -20,7 +22,7 @@ class TestDCDFile(unittest.TestCase):
     def test_dcd(self):
         """ Test the DCD file """
         fname = tempfile.mktemp(suffix='.dcd')
-        pdbfile = app.PDBFile('systems/alanine-dipeptide-implicit.pdb')
+        pdbfile = app.PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.pdb'))
         natom = len(list(pdbfile.topology.atoms()))
         with open(fname, 'wb') as f:
             dcd = app.DCDFile(f, pdbfile.topology, 0.001)
@@ -31,7 +33,7 @@ class TestDCDFile(unittest.TestCase):
     def testLongTrajectory(self):
         """Test writing a trajectory that has more than 2^31 steps."""
         fname = tempfile.mktemp(suffix='.dcd')
-        pdbfile = app.PDBFile('systems/alanine-dipeptide-implicit.pdb')
+        pdbfile = app.PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.pdb'))
         natom = len(list(pdbfile.topology.atoms()))
         with open(fname, 'wb') as f:
             dcd = app.DCDFile(f, pdbfile.topology, 0.001, interval=1000000000)
@@ -42,7 +44,7 @@ class TestDCDFile(unittest.TestCase):
     def testAppend(self):
         """Test appending to an existing trajectory."""
         fname = tempfile.mktemp(suffix='.dcd')
-        pdb = app.PDBFile('systems/alanine-dipeptide-implicit.pdb')
+        pdb = app.PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.pdb'))
         ff = app.ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology)
         
@@ -86,7 +88,7 @@ class TestDCDFile(unittest.TestCase):
     def testAtomSubset(self):
         """Test writing a DCD file containing a subset of atoms"""
         fname = tempfile.mktemp(suffix='.dcd')
-        pdb = app.PDBFile('systems/alanine-dipeptide-explicit.pdb')
+        pdb = app.PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-explicit.pdb'))
         ff = app.ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology)
 
@@ -131,7 +133,7 @@ class TestDCDFile(unittest.TestCase):
     def testAppendAtomCountMismatch(self):
         """Test that appending to a DCD file with a different number of atoms raises an error."""
         fname = tempfile.mktemp(suffix='.dcd')
-        pdb = app.PDBFile('systems/alanine-dipeptide-explicit.pdb')
+        pdb = app.PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-explicit.pdb'))
         ff = app.ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology)
 
@@ -164,7 +166,7 @@ class TestDCDFile(unittest.TestCase):
     def testAppendLongCommentBlock(self):
         """Test appending to an existing trajectory with a long comment block."""
         fname = tempfile.mktemp(suffix='.dcd')
-        pdb = app.PDBFile('systems/alanine-dipeptide-implicit.pdb')
+        pdb = app.PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.pdb'))
         ff = app.ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology)
 
