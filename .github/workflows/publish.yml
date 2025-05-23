@@ -8,6 +8,8 @@ jobs:
   build:
     name: Build wheels on ${{ matrix.os }}-${{ matrix.accelerator }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:

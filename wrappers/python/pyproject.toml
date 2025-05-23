@@ -18,14 +18,9 @@ classifiers = [
 [tool.setuptools.packages.find]
 include = ["openmm*", "simtk*"]
 
-
-# [tool.setuptools.exclude-package-data]
-# "*" = ["*.c", "*.cpp", "*.h", "*.cuh", "*.cu", ".gitignore"]
-
 [build-system]
 requires = ["setuptools>=78", "setuptools-scm>=8", "numpy", "cython"]
 build-backend = "setuptools.build_meta"
-
 
 [tool.cibuildwheel]
 skip = ["cp38-*", "pp*", "*win32", "*armv7l", "*_i686", "*_ppc64le", "*_s390x", "*_universal2", "*-musllinux_*"]
