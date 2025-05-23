@@ -1,4 +1,6 @@
 name: Whole
+permissions:
+  contents: read
 
 on: [push]
 

@@ -9,6 +9,7 @@ __author__ = "Peter Eastman"
 
 import os, os.path
 import sys
+from . import version
 
 
 openmm_library_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'lib'))
