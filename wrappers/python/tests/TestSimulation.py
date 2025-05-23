@@ -4,17 +4,13 @@ from datetime import datetime, timedelta
 from openmm import *
 from openmm.app import *
 from openmm.unit import *
-import os
-
-
-curr_dir = os.path.dirname(os.path.abspath(__file__))
 
 class TestSimulation(unittest.TestCase):
     """Test the Simulation class"""
 
     def testCheckpointing(self):
         """Test that checkpointing works correctly."""
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.pdb'))
+        pdb = PDBFile('systems/alanine-dipeptide-implicit.pdb')
         ff = ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology)
         integrator = VerletIntegrator(0.001*picoseconds)
@@ -48,7 +44,7 @@ class TestSimulation(unittest.TestCase):
 
     def testLoadFromXML(self):
         """ Test creating a Simulation from XML files """
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.pdb'))
+        pdb = PDBFile('systems/alanine-dipeptide-implicit.pdb')
         ff = ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology)
         integrator = VerletIntegrator(0.001*picoseconds)
@@ -71,7 +67,7 @@ class TestSimulation(unittest.TestCase):
 
     def testSaveState(self):
         """Test that saving States works correctly."""
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.pdb'))
+        pdb = PDBFile('systems/alanine-dipeptide-implicit.pdb')
         ff = ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology)
         integrator = VerletIntegrator(0.001*picoseconds)
@@ -104,7 +100,7 @@ class TestSimulation(unittest.TestCase):
 
     def testStep(self):
         """Test the step() method."""
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.pdb'))
+        pdb = PDBFile('systems/alanine-dipeptide-implicit.pdb')
         ff = ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology)
         integrator = VerletIntegrator(0.001*picoseconds)
@@ -127,7 +123,7 @@ class TestSimulation(unittest.TestCase):
 
     def testRunForClockTime(self):
         """Test the runForClockTime() method."""
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.pdb'))
+        pdb = PDBFile('systems/alanine-dipeptide-implicit.pdb')
         ff = ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology)
         integrator = VerletIntegrator(0.001*picoseconds)
@@ -171,7 +167,7 @@ class TestSimulation(unittest.TestCase):
 
     def testWrappedCoordinates(self):
         """Test generating reports with and without wrapped coordinates."""
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-explicit.pdb'))
+        pdb = PDBFile('systems/alanine-dipeptide-explicit.pdb')
         ff = ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology, nonbondedMethod=CutoffPeriodic, constraints=HBonds)
         integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 0.002*picoseconds)
@@ -203,7 +199,7 @@ class TestSimulation(unittest.TestCase):
 
     def testMinimizationReporter(self):
         """Test invoking a reporter during minimization."""
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.pdb'))
+        pdb = PDBFile('systems/alanine-dipeptide-implicit.pdb')
         ff = ForceField('amber99sb.xml', 'tip3p.xml')
         system = ff.createSystem(pdb.topology)
         integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 0.002*picoseconds)

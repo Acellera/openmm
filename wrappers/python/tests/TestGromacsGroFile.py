@@ -3,16 +3,13 @@ from openmm.app import *
 from openmm import *
 from openmm.unit import *
 import openmm.app.element as elem
-import os
-
-curr_dir = os.path.dirname(os.path.abspath(__file__))
 
 class TestGromacsGroFile(unittest.TestCase):
     """Test the Gromacs GRO file parser"""
  
     def test_Triclinic(self):
         """Test parsing a file that describes a triclinic box."""
-        gro = GromacsGroFile(os.path.join(curr_dir, 'systems', 'triclinic.gro'))
+        gro = GromacsGroFile('systems/triclinic.gro')
         self.assertEqual(len(gro.positions), 8)
         expectedPositions = [
             Vec3(1.744, 2.788, 3.162),

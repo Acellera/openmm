@@ -7,9 +7,6 @@ from openmm.unit.unit_math import norm
 import os
 import gc
 
-
-curr_dir = os.path.dirname(os.path.abspath(__file__))
-
 def assertVecAlmostEqual(p1, p2, tol=1e-7):
     unit = p1.unit
     p1 = p1.value_in_unit(unit)
@@ -22,7 +19,7 @@ def assertVecAlmostEqual(p1, p2, tol=1e-7):
 
 class TestPDBReporter(unittest.TestCase):
     def setUp(self):
-        self.pdb = app.PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-explicit.pdb'))
+        self.pdb = app.PDBFile('systems/alanine-dipeptide-explicit.pdb')
         self.forcefield = app.ForceField('amber99sbildn.xml','tip3p.xml')
         self.system = self.forcefield.createSystem(self.pdb.topology, nonbondedMethod=app.CutoffNonPeriodic, constraints=app.HBonds)
 
@@ -120,7 +117,7 @@ class TestPDBReporter(unittest.TestCase):
 
         # use a testcase that has CONECT records in the input pdb file
         ff = app.ForceField('amber14/protein.ff14SB.xml', 'amber14/GLYCAM_06j-1.xml','amber14/tip3pfb.xml')
-        pdb = app.PDBFile(os.path.join(curr_dir, 'systems', 'glycopeptide.pdb'))
+        pdb = app.PDBFile('systems/glycopeptide.pdb')
 
         # add in water molecules
         modeller = app.Modeller(pdb.topology, pdb.positions)
@@ -160,7 +157,7 @@ class TestPDBReporter(unittest.TestCase):
 
 class TestPDBxReporter(unittest.TestCase):
     def setUp(self):
-        self.pdb = app.PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-explicit.pdb'))
+        self.pdb = app.PDBFile('systems/alanine-dipeptide-explicit.pdb')
         self.forcefield = app.ForceField('amber99sbildn.xml','tip3p.xml')
         self.system = self.forcefield.createSystem(self.pdb.topology, nonbondedMethod=app.CutoffNonPeriodic, constraints=app.HBonds)
 
@@ -258,7 +255,7 @@ class TestPDBxReporter(unittest.TestCase):
 
         # use a testcase that has CONECT records in the input pdb file
         ff = app.ForceField('amber14/protein.ff14SB.xml', 'amber14/GLYCAM_06j-1.xml','amber14/tip3pfb.xml')
-        pdb = app.PDBFile(os.path.join(curr_dir, 'systems', 'glycopeptide.pdb'))
+        pdb = app.PDBFile('systems/glycopeptide.pdb')
 
         # add in water molecules
         modeller = app.Modeller(pdb.topology, pdb.positions)

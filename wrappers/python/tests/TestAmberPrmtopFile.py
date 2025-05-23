@@ -7,19 +7,17 @@ from openmm import *
 from openmm.unit import *
 import openmm.app.element as elem
 
-curr_dir = os.path.dirname(os.path.abspath(__file__))
-
-inpcrd1 = AmberInpcrdFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-explicit.inpcrd'))
-inpcrd3 = AmberInpcrdFile(os.path.join(curr_dir, 'systems', 'ff14ipq.rst7'))
-inpcrd4 = AmberInpcrdFile(os.path.join(curr_dir, 'systems', 'Mg_water.inpcrd'))
-inpcrd7 = AmberInpcrdFile(os.path.join(curr_dir, 'systems', '18protein.rst7'))
-prmtop1 = AmberPrmtopFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-explicit.prmtop'))
-prmtop2 = AmberPrmtopFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.prmtop'))
-prmtop3 = AmberPrmtopFile(os.path.join(curr_dir, 'systems', 'ff14ipq.parm7'), periodicBoxVectors=inpcrd3.boxVectors)
-prmtop4 = AmberPrmtopFile(os.path.join(curr_dir, 'systems', 'Mg_water.prmtop'), periodicBoxVectors=inpcrd4.boxVectors)
-prmtop5 = AmberPrmtopFile(os.path.join(curr_dir, 'systems', 'tz2.truncoct.parm7'))
-prmtop6 = AmberPrmtopFile(os.path.join(curr_dir, 'systems', 'gaffwat.parm7'))
-prmtop7 = AmberPrmtopFile(os.path.join(curr_dir, 'systems', '18protein.parm7'), periodicBoxVectors=inpcrd7.boxVectors)
+inpcrd1 = AmberInpcrdFile('systems/alanine-dipeptide-explicit.inpcrd')
+inpcrd3 = AmberInpcrdFile('systems/ff14ipq.rst7')
+inpcrd4 = AmberInpcrdFile('systems/Mg_water.inpcrd')
+inpcrd7 = AmberInpcrdFile('systems/18protein.rst7')
+prmtop1 = AmberPrmtopFile('systems/alanine-dipeptide-explicit.prmtop')
+prmtop2 = AmberPrmtopFile('systems/alanine-dipeptide-implicit.prmtop')
+prmtop3 = AmberPrmtopFile('systems/ff14ipq.parm7', periodicBoxVectors=inpcrd3.boxVectors)
+prmtop4 = AmberPrmtopFile('systems/Mg_water.prmtop', periodicBoxVectors=inpcrd4.boxVectors)
+prmtop5 = AmberPrmtopFile('systems/tz2.truncoct.parm7')
+prmtop6 = AmberPrmtopFile('systems/gaffwat.parm7')
+prmtop7 = AmberPrmtopFile('systems/18protein.parm7', periodicBoxVectors=inpcrd7.boxVectors)
 
 class TestAmberPrmtopFile(unittest.TestCase):
 
@@ -309,14 +307,14 @@ class TestAmberPrmtopFile(unittest.TestCase):
         nonbondedMethod = [NoCutoff, CutoffNonPeriodic, CutoffNonPeriodic, NoCutoff, NoCutoff]
         salt = [0.0, 0.0, 0.5, 0.5, 0.0]*(moles/liter)
         file = ['HCT_NoCutoff', 'OBC1_NonPeriodic', 'OBC2_NonPeriodic_Salt', 'GBn_NoCutoff_Salt', 'GBn2_NoCutoff']
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit.pdb'))
+        pdb = PDBFile('systems/alanine-dipeptide-implicit.pdb')
         for i in range(5):
             system = prmtop2.createSystem(implicitSolvent=solventType[i], nonbondedMethod=nonbondedMethod[i], implicitSolventSaltConc=salt[i])
             integrator = VerletIntegrator(0.001)
             context = Context(system, integrator, Platform.getPlatform("Reference"))
             context.setPositions(pdb.positions)
             state1 = context.getState(getForces=True)
-            with open(os.path.join(curr_dir, 'systems', 'alanine-dipeptide-implicit-forces', file[i]+'.xml')) as infile:
+            with open('systems/alanine-dipeptide-implicit-forces/'+file[i]+'.xml') as infile:
                 state2 = XmlSerializer.deserialize(infile.read())
             for f1, f2, in zip(state1.getForces().value_in_unit(kilojoules_per_mole/nanometer), state2.getForces().value_in_unit(kilojoules_per_mole/nanometer)):
                 diff = norm(f1-f2)
@@ -377,8 +375,8 @@ class TestAmberPrmtopFile(unittest.TestCase):
 
     def testChamber(self):
         """Test a prmtop file created with Chamber."""
-        prmtop = AmberPrmtopFile(os.path.join(curr_dir, 'systems', 'ala3_solv.parm7'))
-        crd = CharmmCrdFile(os.path.join(curr_dir, 'systems', 'ala3_solv.crd'))
+        prmtop = AmberPrmtopFile('systems/ala3_solv.parm7')
+        crd = CharmmCrdFile('systems/ala3_solv.crd')
         system = prmtop.createSystem()
         for i,f in enumerate(system.getForces()):
             f.setForceGroup(i)
@@ -416,8 +414,8 @@ class TestAmberPrmtopFile(unittest.TestCase):
 
     def testNucleicGBParametes(self):
         """Test that correct GB parameters are used for nucleic acids."""
-        prmtop = AmberPrmtopFile(os.path.join(curr_dir, 'systems', 'DNA_mbondi3.prmtop'))
-        inpcrd = AmberInpcrdFile(os.path.join(curr_dir, 'systems', 'DNA_mbondi3.inpcrd'))
+        prmtop = AmberPrmtopFile('systems/DNA_mbondi3.prmtop')
+        inpcrd = AmberInpcrdFile('systems/DNA_mbondi3.inpcrd')
         sanderEnergy = [-19223.87993545, -19527.40433175, -19788.1070698]
         for solvent, expectedEnergy in zip([OBC2, GBn, GBn2], sanderEnergy):
             system = prmtop.createSystem(implicitSolvent=solvent, gbsaModel=None)
@@ -458,7 +456,7 @@ class TestAmberPrmtopFile(unittest.TestCase):
 
     def testEPConstraints(self):
         """Test different types of constraints when using extra particles"""
-        prmtop = AmberPrmtopFile(os.path.join(curr_dir, 'systems', 'peptide_with_tip4p.prmtop'))
+        prmtop = AmberPrmtopFile('systems/peptide_with_tip4p.prmtop')
         for constraints in (HBonds, AllBonds):
             system = prmtop.createSystem(constraints=constraints)
             integrator = VerletIntegrator(0.001*picoseconds)

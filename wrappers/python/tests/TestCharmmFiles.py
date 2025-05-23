@@ -14,9 +14,6 @@ if sys.version_info >= (3,0):
 else:
     from cStringIO import StringIO
 
-
-curr_dir = os.path.dirname(os.path.abspath(__file__))
-
 class TestCharmmFiles(unittest.TestCase):
 
     """Test the GromacsTopFile.createSystem() method."""
@@ -25,13 +22,12 @@ class TestCharmmFiles(unittest.TestCase):
         """Set up the tests by loading the input files."""
 
         # alanine tripeptide; no waters
-        self.psf_c = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'ala_ala_ala.psf'))
-        self.psf_x = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'ala_ala_ala.xpsf'))
-        self.psf_v = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'ala_ala_ala.vpsf'))
+        self.psf_c = CharmmPsfFile('systems/ala_ala_ala.psf')
+        self.psf_x = CharmmPsfFile('systems/ala_ala_ala.xpsf')
+        self.psf_v = CharmmPsfFile('systems/ala_ala_ala.vpsf')
         self.params = CharmmParameterSet(
-                            os.path.join(curr_dir, 'systems', 'charmm22.rtf'),
-                            os.path.join(curr_dir, 'systems', 'charmm22.par'))
-        self.pdb = PDBFile(os.path.join(curr_dir, 'systems', 'ala_ala_ala.pdb'))
+                            'systems/charmm22.rtf', 'systems/charmm22.par')
+        self.pdb = PDBFile('systems/ala_ala_ala.pdb')
 
     def test_NonbondedMethod(self):
         """Test both non-periodic methods for the systems"""
@@ -107,9 +103,9 @@ class TestCharmmFiles(unittest.TestCase):
     def test_DrudeMass(self):
         """Test that setting the mass of Drude particles works correctly."""
 
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'ala3_solv_drude.psf'))
-        crd = CharmmCrdFile(os.path.join(curr_dir, 'systems', 'ala3_solv_drude.crd'))
-        params = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'toppar_drude_master_protein_2013e.str'))
+        psf = CharmmPsfFile('systems/ala3_solv_drude.psf')
+        crd = CharmmCrdFile('systems/ala3_solv_drude.crd')
+        params = CharmmParameterSet('systems/toppar_drude_master_protein_2013e.str')
         system = psf.createSystem(params, drudeMass=0)
         trueMass = [system.getParticleMass(i) for i in range(system.getNumParticles())]
         drudeMass = 0.3*amu
@@ -134,10 +130,10 @@ class TestCharmmFiles(unittest.TestCase):
     def test_NBFIX(self):
         """Tests CHARMM systems with NBFIX Lennard-Jones modifications"""
         warnings.filterwarnings('ignore', category=CharmmPSFWarning)
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'ala3_solv.psf'), unitCellDimensions=Vec3(32.7119500, 32.9959600, 33.0071500)*angstroms)
-        crd = CharmmCrdFile(os.path.join(curr_dir, 'systems', 'ala3_solv.crd'))
-        params = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'par_all36_prot.prm'),
-                                    os.path.join(curr_dir, 'systems', 'toppar_water_ions.str'))
+        psf = CharmmPsfFile('systems/ala3_solv.psf', unitCellDimensions=Vec3(32.7119500, 32.9959600, 33.0071500)*angstroms)
+        crd = CharmmCrdFile('systems/ala3_solv.crd')
+        params = CharmmParameterSet('systems/par_all36_prot.prm',
+                                    'systems/toppar_water_ions.str')
 
         # Turn off charges so we only test the Lennard-Jones energies
         for a in psf.atom_list:
@@ -158,11 +154,9 @@ class TestCharmmFiles(unittest.TestCase):
     def test_NBFIX14(self):
         """Tests CHARMM systems with NBFIX modifications to 1-4 interactions"""
         warnings.filterwarnings('ignore', category=CharmmPSFWarning)
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'chl1.psf'))
-        crd = CharmmCrdFile(os.path.join(curr_dir, 'systems', 'chl1.crd'))
-        params = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'par_all36_lipid.prm'),
-                                   os.path.join(curr_dir, 'systems', 'par_all36_cgenff.prm'),
-                                   os.path.join(curr_dir, 'systems', 'toppar_all36_lipid_cholesterol.str'))
+        psf = CharmmPsfFile('systems/chl1.psf')
+        crd = CharmmCrdFile('systems/chl1.crd')
+        params = CharmmParameterSet('systems/par_all36_lipid.prm', 'systems/par_all36_cgenff.prm', 'systems/toppar_all36_lipid_cholesterol.str')
 
         # Turn off charges so we only test the Lennard-Jones energies
         for a in psf.atom_list:
@@ -184,10 +178,9 @@ class TestCharmmFiles(unittest.TestCase):
     def test_NBThole(self):
         """Tests CHARMM system with NBTHole"""
         warnings.filterwarnings('ignore', category=CharmmPSFWarning)
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'cyt-gua-cyt.psf'))
-        crd = CharmmCrdFile(os.path.join(curr_dir, 'systems', 'cyt-gua-cyt.crd'))
-        params = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'toppar_drude_master_protein_2013e.str'),
-                                   os.path.join(curr_dir, 'systems', 'toppar_drude_nucleic_acid_2017b.str'))
+        psf = CharmmPsfFile('systems/cyt-gua-cyt.psf')
+        crd = CharmmCrdFile('systems/cyt-gua-cyt.crd')
+        params = CharmmParameterSet('systems/toppar_drude_master_protein_2013e.str','systems/toppar_drude_nucleic_acid_2017b.str')
         # Box dimensions (cubic box)
         psf.setBox(30.0*angstroms, 30.0*angstroms, 30.0*angstroms)
 
@@ -204,7 +197,7 @@ class TestCharmmFiles(unittest.TestCase):
 
     def test_PSFSetUnitCellDimensions(self):
         """Test that setting the box via unit cell dimensions works correctly."""
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'ala3_solv_drude.psf'))
+        psf = CharmmPsfFile('systems/ala3_solv_drude.psf')
 
         # Orthorhombic
         psf.setBox(2.1*nanometer, 2.3*nanometer, 2.4*nanometer)
@@ -235,9 +228,9 @@ class TestCharmmFiles(unittest.TestCase):
     def test_Drude(self):
         """Test CHARMM systems with Drude force field"""
         warnings.filterwarnings('ignore', category=CharmmPSFWarning)
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'ala3_solv_drude.psf'))
-        crd = CharmmCrdFile(os.path.join(curr_dir, 'systems', 'ala3_solv_drude.crd'))
-        params = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'toppar_drude_master_protein_2013e.str'))
+        psf = CharmmPsfFile('systems/ala3_solv_drude.psf')
+        crd = CharmmCrdFile('systems/ala3_solv_drude.crd')
+        params = CharmmParameterSet('systems/toppar_drude_master_protein_2013e.str')
         # Box dimensions (cubic box)
         psf.setBox(33.2*angstroms, 33.2*angstroms, 33.2*angstroms)
 
@@ -255,10 +248,10 @@ class TestCharmmFiles(unittest.TestCase):
     def test_Lonepair(self):
         """Test the lonepair facilities, in particular the colinear type of lonepairs"""
         warnings.filterwarnings('ignore', category=CharmmPSFWarning)
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'chlb_cgenff.psf'))
-        crd = CharmmCrdFile(os.path.join(curr_dir, 'systems', 'chlb_cgenff.crd'))
-        params = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'top_all36_cgenff.rtf'),
-                                   os.path.join(curr_dir, 'systems', 'par_all36_cgenff.prm'))
+        psf = CharmmPsfFile('systems/chlb_cgenff.psf')
+        crd = CharmmCrdFile('systems/chlb_cgenff.crd')
+        params = CharmmParameterSet('systems/top_all36_cgenff.rtf',
+                                    'systems/par_all36_cgenff.prm')
         plat = Platform.getPlatform('Reference')
         system = psf.createSystem(params)
         con = Context(system, VerletIntegrator(2*femtoseconds), plat)
@@ -277,7 +270,7 @@ class TestCharmmFiles(unittest.TestCase):
 
     def test_InsCode(self):
         """ Test the parsing of PSF files that contain insertion codes in their residue numbers """
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', '4TVP-dmj_wat-ion.psf'))
+        psf = CharmmPsfFile('systems/4TVP-dmj_wat-ion.psf')
         self.assertEqual(len(list(psf.topology.atoms())), 66264)
         self.assertEqual(len(list(psf.topology.residues())), 20169)
         self.assertEqual(len(list(psf.topology.bonds())), 46634)
@@ -285,11 +278,11 @@ class TestCharmmFiles(unittest.TestCase):
     def testSystemOptions(self):
         """ Test various options in CharmmPsfFile.createSystem """
         warnings.filterwarnings('ignore', category=CharmmPSFWarning)
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'ala3_solv.psf'),
+        psf = CharmmPsfFile('systems/ala3_solv.psf',
                             periodicBoxVectors=(Vec3(32.7119500, 0, 0)*angstroms, Vec3(0, 32.9959600, 0)*angstroms, Vec3(0, 0, 33.0071500)*angstroms))
-        crd = CharmmCrdFile(os.path.join(curr_dir, 'systems', 'ala3_solv.crd'))
-        params = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'par_all36_prot.prm'),
-                                   os.path.join(curr_dir, 'systems', 'toppar_water_ions.str'))
+        crd = CharmmCrdFile('systems/ala3_solv.crd')
+        params = CharmmParameterSet('systems/par_all36_prot.prm',
+                                    'systems/toppar_water_ions.str')
 
         # Check some illegal options
         self.assertRaises(ValueError, lambda:
@@ -321,10 +314,10 @@ class TestCharmmFiles(unittest.TestCase):
             context = Context(system, integrator, Platform.getPlatform("Reference"))
             context.setPositions(self.pdb.positions)
             state1 = context.getState(getForces=True)
-            #out = open(os.path.join(curr_dir, 'systems', 'ala-ala-ala-implicit-forces', file[i]+'.xml'), 'w')
+            #out = open('systems/ala-ala-ala-implicit-forces/'+file[i]+'.xml', 'w')
             #out.write(XmlSerializer.serialize(state1))
             #out.close()
-            with open(os.path.join(curr_dir, 'systems', 'ala-ala-ala-implicit-forces', file[i]+'.xml')) as xml:
+            with open('systems/ala-ala-ala-implicit-forces/'+file[i]+'.xml') as xml:
                 state2 = XmlSerializer.deserialize(xml.read())
             for f1, f2, in zip(state1.getForces().value_in_unit(kilojoules_per_mole/nanometer), state2.getForces().value_in_unit(kilojoules_per_mole/nanometer)):
                 diff = norm(f1-f2)
@@ -333,11 +326,11 @@ class TestCharmmFiles(unittest.TestCase):
     def test_PermissiveRead(self):
         """Compare permissive and strict reading of Charmm parameters"""
 
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', '5dhfr_cube.psf'))
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', '5dhfr_cube.pdb'))
+        psf = CharmmPsfFile('systems/5dhfr_cube.psf')
+        pdb = PDBFile('systems/5dhfr_cube.pdb')
 
-        params_strict     = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'par_all22_prot_with_mass.inp'))
-        params_permissive = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'par_all22_prot.inp'), permissive=True)
+        params_strict     = CharmmParameterSet('systems/par_all22_prot_with_mass.inp')
+        params_permissive = CharmmParameterSet('systems/par_all22_prot.inp', permissive=True)
         # Box dimensions (found from bounding box)
         psf.setBox(62.23*angstroms, 62.23*angstroms, 62.23*angstroms)
 
@@ -368,7 +361,7 @@ class TestCharmmFiles(unittest.TestCase):
     
     def test_Impropers(self):
         """Test CHARMM improper torsions."""
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'improper.psf'))
+        psf = CharmmPsfFile('systems/improper.psf')
         system = psf.createSystem(self.params)
         force = [f for f in system.getForces() if isinstance(f, CustomTorsionForce)][0]
         group = force.getForceGroup()
@@ -515,7 +508,7 @@ END""", file=prm_file)
         hoh = ["O", "H1", "H2"]
         pot = ["POT"]
         cla = ["CLA"]
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'charmm-solvated', 'isa_wat.3_kcl.m14.psf'))
+        psf = CharmmPsfFile('systems/charmm-solvated/isa_wat.3_kcl.m14.psf')
         for residue in psf.topology.residues():
             atoms = [atom.name for atom in residue.atoms()]
             if residue.name == "M14":
@@ -532,11 +525,11 @@ END""", file=prm_file)
     def test_NoLongRangeCorrection(self):
         """Test that long range correction is disabled."""
         parameters = CharmmParameterSet(
-            os.path.join(curr_dir, 'systems', 'charmm-solvated', 'envi.str'),
-            os.path.join(curr_dir, 'systems', 'charmm-solvated', 'm14.rtf'),
-            os.path.join(curr_dir, 'systems', 'charmm-solvated', 'm14.prm')
+            'systems/charmm-solvated/envi.str',
+            'systems/charmm-solvated/m14.rtf',
+            'systems/charmm-solvated/m14.prm'
         )
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'charmm-solvated', 'isa_wat.3_kcl.m14.psf'))
+        psf = CharmmPsfFile('systems/charmm-solvated/isa_wat.3_kcl.m14.psf')
         psf.setBox(3.0584*nanometers,3.0584*nanometers,3.0584*nanometers)
         system = psf.createSystem(parameters, nonbondedMethod=PME)
         for force in system.getForces():
@@ -548,20 +541,20 @@ END""", file=prm_file)
     def test_NoPsfWarning(self):
         """Test that PSF warning is not thrown."""
         parameters = CharmmParameterSet(
-            os.path.join(curr_dir, 'systems', 'charmm-solvated', 'envi.str'),
-            os.path.join(curr_dir, 'systems', 'charmm-solvated', 'm14.rtf'),
-            os.path.join(curr_dir, 'systems', 'charmm-solvated', 'm14.prm')
+            'systems/charmm-solvated/envi.str',
+            'systems/charmm-solvated/m14.rtf',
+            'systems/charmm-solvated/m14.prm'
         )
         with warnings.catch_warnings():
             warnings.simplefilter("error", CharmmPSFWarning)
-            psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'charmm-solvated', 'isa_wat.3_kcl.m14.psf'))
+            psf = CharmmPsfFile('systems/charmm-solvated/isa_wat.3_kcl.m14.psf')
             psf.setBox(3.0584*nanometers,3.0584*nanometers,3.0584*nanometers)
             psf.createSystem(parameters, nonbondedMethod=PME)
 
     def test_NBXMod(self):
         """Test that all values of NBXMod are interpreted correctly."""
-        crd = CharmmCrdFile(os.path.join(curr_dir, 'systems', 'ala_ala_ala.crd'))
-        with open(os.path.join(curr_dir, 'systems', 'charmm22.par')) as parfile:
+        crd = CharmmCrdFile('systems/ala_ala_ala.crd')
+        with open('systems/charmm22.par') as parfile:
             par = parfile.read()
         # The following values were computed with CHARMM.
         modeEnergy = {0: 754318.20507, 1: 754318.20507, 2: 908.35224, 3: 59.65279, 4: -241.12856, 5: 39.13169}
@@ -569,7 +562,7 @@ END""", file=prm_file)
             with tempfile.NamedTemporaryFile(suffix='.par', mode='w', delete=False) as parfile:
                 parfile.write(par.replace('nbxmod  5', 'nbxmod %d' % nbxmod))
                 parfile.close()
-                params = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'charmm22.rtf'), parfile.name)
+                params = CharmmParameterSet('systems/charmm22.rtf', parfile.name)
                 os.remove(parfile.name)
             system = self.psf_c.createSystem(params, nonbondedMethod=NoCutoff)
             context = Context(system, VerletIntegrator(1*femtoseconds), Platform.getPlatform('Reference'))
@@ -579,9 +572,9 @@ END""", file=prm_file)
 
     def test_Nonbonded_Exclusion(self):
         """Test that the 1-2, 1-3 and 1-4 pairs are correctly excluded or scaled."""
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'MoS2.psf'))
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', 'MoS2.pdb'))
-        params = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'MoS2.prm'))
+        psf = CharmmPsfFile('systems/MoS2.psf')
+        pdb = PDBFile('systems/MoS2.pdb')
+        params = CharmmParameterSet('systems/MoS2.prm')
         system = psf.createSystem(params, nonbondedMethod=NoCutoff)
         context = Context(system, VerletIntegrator(1*femtoseconds), Platform.getPlatform('Reference'))
         context.setPositions(pdb.positions)
@@ -591,8 +584,8 @@ END""", file=prm_file)
 
     def test_Constraints(self):
         """Test that bond and angles constraints are correctly added into the system"""
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'water_methanol.psf'))
-        params = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'water_methanol.prm'))
+        psf = CharmmPsfFile('systems/water_methanol.psf')
+        params = CharmmParameterSet('systems/water_methanol.prm')
         # the system is made of one water molecule and one methanol molecule
         hBonds_water = [[0, 1], [1, 2]]
         hAngles_water = [[0, 2]]
@@ -626,11 +619,11 @@ END""", file=prm_file)
     def test_Constraints_charmm(self):
         """Tests that CHARMM and OpenMM implementation of CHARMM force field produce the same constraints and energy"""
         warnings.filterwarnings('ignore', category=CharmmPSFWarning)
-        psf = CharmmPsfFile(os.path.join(curr_dir, 'systems', 'ala3_solv.psf'),
+        psf = CharmmPsfFile('systems/ala3_solv.psf',
                             unitCellDimensions=Vec3(32.7119500, 32.9959600, 33.0071500) * angstroms)
-        crd = CharmmCrdFile(os.path.join(curr_dir, 'systems', 'ala3_solv.crd'))
-        params = CharmmParameterSet(os.path.join(curr_dir, 'systems', 'par_all36_prot.prm'),
-                                   os.path.join(curr_dir, 'systems', 'toppar_water_ions.str'))
+        crd = CharmmCrdFile('systems/ala3_solv.crd')
+        params = CharmmParameterSet('systems/par_all36_prot.prm',
+                                    'systems/toppar_water_ions.str')
         plat = Platform.getPlatform('Reference')
         system_charmm = psf.createSystem(params, nonbondedMethod=PME,
                                   nonbondedCutoff=8 * angstroms)

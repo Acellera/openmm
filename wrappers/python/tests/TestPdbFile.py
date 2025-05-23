@@ -5,10 +5,6 @@ from openmm import *
 from openmm.unit import *
 import openmm.app.element as elem
 from io import StringIO
-import os
-
-
-curr_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class TestPdbFile(unittest.TestCase):
@@ -16,7 +12,7 @@ class TestPdbFile(unittest.TestCase):
 
     def test_Triclinic(self):
         """Test parsing a file that describes a triclinic box."""
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', 'triclinic.pdb'))
+        pdb = PDBFile('systems/triclinic.pdb')
         self.assertEqual(len(pdb.positions), 8)
         expectedPositions = [
             Vec3(1.744, 2.788, 3.162),
@@ -60,7 +56,7 @@ class TestPdbFile(unittest.TestCase):
                 self.assertEqual(atom1.name, atom2.name)
                 self.assertEqual(atom1.residue.name, atom2.residue.name)
 
-        pdb1 = PDBFile(os.path.join(curr_dir, 'systems', 'triclinic.pdb'))
+        pdb1 = PDBFile('systems/triclinic.pdb')
 
         # First try writing to an open file object.
 
@@ -82,13 +78,13 @@ class TestPdbFile(unittest.TestCase):
 
     def test_BinaryStream(self):
         """Test reading a stream that was opened in binary mode."""
-        with open(os.path.join(curr_dir, 'systems', 'triclinic.pdb'), 'rb') as infile:
+        with open('systems/triclinic.pdb', 'rb') as infile:
             pdb = PDBFile(infile)
         self.assertEqual(len(pdb.positions), 8)
 
     def test_ExtraParticles(self):
         """Test reading, and writing and re-reading of a file containing extra particle atoms."""
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', 'tip5p.pdb'))
+        pdb = PDBFile('systems/tip5p.pdb')
         for atom in pdb.topology.atoms():
             if atom.index > 2:
                 self.assertEqual(None, atom.element)
@@ -103,7 +99,7 @@ class TestPdbFile(unittest.TestCase):
     def test_AltLocs(self):
         """Test reading a file that includes AltLocs"""
         for filename in ['altlocs.pdb', 'altlocs2.pdb']:
-            pdb = PDBFile(os.path.join(curr_dir, 'systems', filename))
+            pdb = PDBFile(f'systems/{filename}')
             self.assertEqual(1, pdb.topology.getNumResidues())
             self.assertEqual(19, pdb.topology.getNumAtoms())
             self.assertEqual(19, len(pdb.positions))
@@ -111,7 +107,7 @@ class TestPdbFile(unittest.TestCase):
 
     def test_FormalCharges(self):
         """Test reading, and writing and re-reading of a file containing formal charges."""
-        pdb = PDBFile(os.path.join(curr_dir, 'systems', 'formal-charges.pdb'))
+        pdb = PDBFile('systems/formal-charges.pdb')
         for atom in pdb.topology.atoms():
             if atom.index == 8:
                 self.assertEqual(+1, atom.formalCharge)
