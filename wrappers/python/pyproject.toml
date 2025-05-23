@@ -1,0 +1,48 @@
+[project]
+name = "OpenMM"
+description = "Python wrapper for OpenMM (a C++ MD package)"
+authors = [{ name = "Peter Eastman", email = "peastman@stanford.edu" }]
+readme = "README.md"
+license = "PSF-2.0"
+requires-python = ">=3.8"
+dynamic = ["version", "dependencies"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+"Homepage" = "https://openmm.org"
+"Bug Tracker" = "https://github.com/openmm/openmm/issues"
+"Download URL" = "https://openmm.org"
+
+[tool.setuptools.packages.find]
+include = ["openmm*", "simtk*"]
+
+[build-system]
+requires = ["setuptools>=78", "setuptools-scm>=8", "numpy", "cython"]
+build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+skip = ["cp38-*", "pp*", "*win32", "*armv7l", "*_i686", "*_ppc64le", "*_s390x", "*_universal2", "*-musllinux_*"]
+test-requires = ["pytest"]
+test-command = "cd {project}/wrappers/python/tests; pytest"
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+environment-pass = ["ACCELERATOR", "VERSION_SUFFIX"]
+# container-engine = "docker; create_args: --gpus all"
+
+[tool.cibuildwheel.windows]
+before-all = "bash wrappers/python/cibuildwheel_support/prepare_build_environment_windows.sh"
+test-command = "cp -r {project}/wrappers/python/tests/systems . && pytest {project}/wrappers/python/tests"
+
+[tool.cibuildwheel.linux]
+before-all = "wrappers/python/cibuildwheel_support/prepare_build_environment_linux.sh"
+repair-wheel-command = [
+  "auditwheel repair --exclude libOpenMM.so --exclude libOpenMMCUDA.so --exclude libOpenMMHIP.so --exclude libOpenMMOpenCL.so --exclude libOpenMMDrude.so --exclude libOpenMMAmoeba.so --exclude libOpenMMRPMD.so --exclude libOpenCL.so.1 --exclude libcuda.so.1 --exclude libcufft.so.11 --exclude libcufft.so.10 --exclude libnvrtc.so.11.2 --exclude libnvrtc.so.12 --exclude libhiprtc.so.6 --exclude libamdhip64.so.6 -w {dest_dir} {wheel}",
+]
+
+[tool.cibuildwheel.macos]
+before-all = "wrappers/python/cibuildwheel_support/prepare_build_environment_osx.sh"
+repair-wheel-command = [
+  "delocate-wheel --ignore-missing-dependencies --require-archs {delocate_archs} -w {dest_dir} -v {wheel}",
+]

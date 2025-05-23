@@ -85,12 +85,13 @@ def writeVersionPy(filename="openmm/version.py", major_version_num=MAJOR_VERSION
 
     cnt = """
 # THIS FILE IS GENERATED FROM OPENMM SETUP.PY
+from openmm import openmm_library_path
+
 short_version = '%(version)s'
 version = '%(version)s'
 full_version = '%(full_version)s'
 git_revision = '%(git_revision)s'
 release = %(isrelease)s
-openmm_library_path = r'%(path)s'
 
 if not release:
     version = full_version
@@ -118,8 +119,7 @@ if not release:
         a.write(cnt % {'version': version,
                        'full_version' : full_version,
                        'git_revision' : git_revision,
-                       'isrelease': str(IS_RELEASED),
-                       'path': os.getenv('OPENMM_LIB_PATH')})
+                       'isrelease': str(IS_RELEASED)})
 
 
 def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
@@ -127,16 +127,10 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
                            build_info=BUILD_INFO):
     from setuptools import Extension
     setupKeywords = {}
-    setupKeywords["name"]              = "OpenMM"
     setupKeywords["version"]           = "%s.%s.%s%s" % (major_version_num,
                                                        minor_version_num,
                                                        build_info,
                                                        os.getenv('VERSION_SUFFIX', ''))
-    setupKeywords["author"]            = "Peter Eastman"
-    setupKeywords["license"]           = \
-    "Python Software Foundation License (BSD-like)"
-    setupKeywords["url"]               = "https://openmm.org"
-    setupKeywords["download_url"]      = "https://openmm.org"
     setupKeywords["packages"]          = [
                                           "simtk",
                                           "simtk.unit",
@@ -151,21 +145,15 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
                                           "openmm.app.internal.pdbx",
                                           "openmm.app.internal.pdbx.reader",
                                           "openmm.app.internal.pdbx.writer"]
-    setupKeywords["data_files"]        = []
-    setupKeywords["package_data"]      = {"openmm" : [],
-                                          "openmm.app" : ['data/*.xml', 'data/*.pdb', 'data/amber14/*.xml', 'data/amber19/*.xml', 'data/charmm36/*.xml', 'data/implicit/*.xml'],
-                                          "openmm.app.internal" : []}
-    setupKeywords["install_requires"]  = ["numpy"]
-    setupKeywords["platforms"]         = ["Linux", "Mac OS X", "Windows"]
-    setupKeywords["description"]       = \
-    "Python wrapper for OpenMM (a C++ MD package)"
-    setupKeywords["long_description"]  = \
-    """OpenMM is a toolkit for molecular simulation. It can be used either as a
-    stand-alone application for running simulations, or as a library you call
-    from your own code. It provides a combination of extreme flexibility
-    (through custom forces and integrators), openness, and high performance
-    (especially on recent GPUs) that make it truly unique among simulation codes.
-    """
+
+    setupKeywords["install_requires"] = ["numpy"]
+    if os.getenv("ACCELERATOR", "").startswith("cu"):
+        cuda_ver = os.getenv("ACCELERATOR", "")[2:4]
+        setupKeywords["install_requires"] += [f'nvidia-cuda-runtime-cu{cuda_ver}',
+                                              f'nvidia-cuda-nvcc-cu{cuda_ver}',
+                                              f'nvidia-cuda-nvrtc-cu{cuda_ver}',
+                                              f'nvidia-cuda-cupti-cu{cuda_ver}',
+                                              f'nvidia-cufft-cu{cuda_ver}']
 
     define_macros = [('MAJOR_VERSION', major_version_num),
                      ('MINOR_VERSION', minor_version_num)]
@@ -184,14 +172,10 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
                 libraries[ii]="%s_d" % libraries[ii]
                 sys.stdout.write("%s\n" % libraries[ii])
 
-    openmm_include_path = os.getenv('OPENMM_INCLUDE_PATH')
-    if not openmm_include_path:
-        reportError("Set OPENMM_INCLUDE_PATH to point to the include directory for OpenMM")
-    openmm_lib_path = os.getenv('OPENMM_LIB_PATH')
-    if not openmm_lib_path:
-        reportError("Set OPENMM_LIB_PATH to point to the lib directory for OpenMM")
+    openmm_include_path = os.getenv('OPENMM_INCLUDE_PATH', 'openmm/include')
+    openmm_lib_path = os.getenv('OPENMM_LIB_PATH', 'openmm/lib')
 
-    extra_compile_args=['-std=c++11']
+    extra_compile_args=['-std=c++11', '-D_GLIBCXX_USE_CXX11_ABI=1']
     extra_link_args=[]
     if platform.system() == "Windows":
         define_macros.append( ('WIN32', None) )
@@ -199,9 +183,10 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
         define_macros.append( (' _MSC_VER', None) )
         extra_compile_args.append('/EHsc')
     else:
+        extra_link_args += ['-Wl,-rpath,$ORIGIN/lib']
         if platform.system() == 'Darwin':
             extra_compile_args += ['-stdlib=libc++']
-            extra_link_args += ['-stdlib=libc++', '-Wl', '-rpath', openmm_lib_path]
+            extra_link_args += ['-stdlib=libc++', '-Wl', '-rpath', '@loader_path/lib']
             if 'MACOSX_DEPLOYMENT_TARGET' not in os.environ and platform.processor() != 'arm':
                 extra_compile_args += ['-mmacosx-version-min=10.7']
                 extra_link_args += ['-mmacosx-version-min=10.7']
