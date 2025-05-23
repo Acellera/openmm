@@ -67,3 +67,5 @@ cd ..
 cp -r build/python/* wrappers/python/
 cp -r build/openmm-install/include wrappers/python/openmm/
 cp -r build/openmm-install/lib wrappers/python/openmm/
+
+ln -s wrappers/python/tests/systems .

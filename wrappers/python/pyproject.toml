@@ -33,7 +33,7 @@ environment-pass = ["ACCELERATOR", "VERSION_SUFFIX"]
 
 [tool.cibuildwheel.windows]
 before-all = "bash wrappers/python/cibuildwheel_support/prepare_build_environment_windows.sh"
-test-command = "cd {project}\\wrappers\\python\\tests && pytest {project}\\wrappers\\python\\tests"
+test-command = "pytest {project}/wrappers/python/tests"
 
 [tool.cibuildwheel.linux]
 before-all = "wrappers/python/cibuildwheel_support/prepare_build_environment_linux.sh"
