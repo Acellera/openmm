@@ -10,3 +10,9 @@ prune src/swig_doxygen/doxygen/xml
 global-exclude CMakeLists.txt
 graft openmm/lib
 graft openmm/include
+include openmm/app/data/*.xml
+include openmm/app/data/*.pdb
+include openmm/app/data/amber14/*.xml
+include openmm/app/data/amber19/*.xml
+include openmm/app/data/charmm36/*.xml
+include openmm/app/data/implicit/*.xml
