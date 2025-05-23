@@ -71,8 +71,6 @@ jobs:
         shell: bash -l {0}
         run: python -m cibuildwheel wrappers/python/ --output-dir wheelhouse
         env:
-          CIBW_BEFORE_ALL_LINUX: "wrappers/python/cibuildwheel_support/prepare_build_environment_linux.sh"
-          CIBW_BEFORE_ALL_MACOS: "wrappers/python/cibuildwheel_support/prepare_build_environment_osx.sh"
           ACCELERATOR: ${{ matrix.accelerator }}
           VERSION_SUFFIX: "rc1"
 
@@ -81,7 +79,6 @@ jobs:
         shell: cmd # Use cmd on Windows to avoid bash environment taking priority over MSVC variables
         run: python -m cibuildwheel wrappers/python/ --output-dir wheelhouse
         env:
-          CIBW_BEFORE_ALL_WINDOWS: "bash wrappers/python/cibuildwheel_support/prepare_build_environment_windows.sh"
           DISTUTILS_USE_SDK: "1" # Windows requires this to use vc for building
           ACCELERATOR: ${{ matrix.accelerator }}
           VERSION_SUFFIX: "rc1"
