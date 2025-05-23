@@ -9,7 +9,6 @@ __author__ = "Peter Eastman"
 
 import os, os.path
 import sys
-from . import version
 
 
 openmm_library_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'lib'))
@@ -41,3 +40,5 @@ __version__ = Platform.getOpenMMVersion()
 class OpenMMException(Exception):
     """This is the class used for all exceptions thrown by the C++ library."""
     pass
+
+from . import version
