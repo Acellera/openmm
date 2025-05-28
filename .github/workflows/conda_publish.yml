@@ -180,7 +180,7 @@ jobs:
       - name: Setup CUDA Toolkit
         id: cuda-toolkit
         shell: pwsh
-        run: scripts/setup_cuda.ps1
+        run: conda_package/scripts/setup_cuda.ps1
         env:
           INPUT_CUDA_VERSION: 11.8.0
 
@@ -228,7 +228,7 @@ jobs:
       - name: Setup CUDA Toolkit
         id: cuda-toolkit
         shell: pwsh
-        run: scripts/setup_cuda.ps1
+        run: conda_package/scripts/setup_cuda.ps1
         env:
           INPUT_CUDA_VERSION: 12.0.0
 
