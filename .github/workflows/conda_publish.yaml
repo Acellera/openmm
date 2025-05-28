@@ -1,9 +1,8 @@
 name: Test code and publish package
 
 on:
-  push:
-    tags:
-    - 'v*'
+  workflow_dispatch:
+  workflow_call:
 
 jobs:
   deploy_linux_cuda11:

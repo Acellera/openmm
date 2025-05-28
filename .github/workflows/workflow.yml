@@ -3,7 +3,12 @@ name: Whole
 on: [push]
 
 jobs:
-  publish:
+  publish_pypi:
     if: startsWith(github.event.ref, 'refs/tags/v')
     uses: ./.github/workflows/publish.yml
+    secrets: inherit
+
+  publish_conda:
+    if: startsWith(github.event.ref, 'refs/tags/v')
+    uses: ./.github/workflows/conda_publish.yml
     secrets: inherit
