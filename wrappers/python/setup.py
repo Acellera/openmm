@@ -146,7 +146,22 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
                                           "openmm.app.internal.pdbx.reader",
                                           "openmm.app.internal.pdbx.writer"]
 
-    setupKeywords["install_requires"] = ["numpy"]
+    setupKeywords["data_files"]        = []
+    setupKeywords["package_data"]      = {"openmm" : [],
+                                          "openmm.app" : ['data/*.xml', 'data/*.pdb', 'data/amber14/*.xml', 'data/amber19/*.xml', 'data/charmm36/*.xml', 'data/implicit/*.xml'],
+                                          "openmm.app.internal" : []}
+    setupKeywords["install_requires"]  = ["numpy"]
+    setupKeywords["platforms"]         = ["Linux", "Mac OS X", "Windows"]
+    setupKeywords["description"]       = \
+    "Python wrapper for OpenMM (a C++ MD package)"
+    setupKeywords["long_description"]  = \
+    """OpenMM is a toolkit for molecular simulation. It can be used either as a
+    stand-alone application for running simulations, or as a library you call
+    from your own code. It provides a combination of extreme flexibility
+    (through custom forces and integrators), openness, and high performance
+    (especially on recent GPUs) that make it truly unique among simulation codes.
+    """
+
     if os.getenv("ACCELERATOR", "").startswith("cu"):
         cuda_ver = os.getenv("ACCELERATOR", "")[2:4]
         setupKeywords["install_requires"] += [f'nvidia-cuda-runtime-cu{cuda_ver}',
