@@ -12,6 +12,13 @@ import sys
 
 
 openmm_library_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'lib'))
+if not os.path.exists(openmm_library_path):
+    # The conda package installs all the libraries in the env/lib directory
+    import site
+
+    sp_dir = site.getsitepackages()[0]
+    openmm_library_path = os.path.abspath(os.path.join(sp_dir, '..', '..'))
+
 if sys.platform == 'win32':
     _path = os.environ['PATH']
     os.environ['PATH'] = r'%(lib)s;%(lib)s\plugins;%(path)s' % {
