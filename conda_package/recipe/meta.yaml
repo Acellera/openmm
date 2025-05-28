@@ -20,6 +20,7 @@ source:
 
 build:
   number: {{ build }}
+  string: "cuda{{ cuda_compiler_version | replace('.', '') }}py{{ PY_VER.replace('.', '') }}h{{ PKG_HASH }}_{{ build }}"  # [cuda_compiler_version != "None"]
   string: "py{{ PY_VER.replace('.', '') }}h{{ PKG_HASH }}_{{ build }}_{{ opencl_impl }}"  # [osx]
   track_features:  # make Apple OpenCL low priority
     - openmm_opencl_apple  # [osx and (opencl_impl == 'apple')]
