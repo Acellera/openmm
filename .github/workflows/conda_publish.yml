@@ -198,7 +198,7 @@ jobs:
       - name: Upload to conda
         shell: bash -l {0}
         run: |
-          anaconda -t ${{ secrets.ANACONDA_TOKEN_BASIC }} upload -u acellera pkg/*/openmm-*.tar.bz2 --skip-existing
+          anaconda -t ${{ secrets.ANACONDA_TOKEN_BASIC }} upload -u acellera pkg/*/openmm-*.conda --skip-existing
 
   deploy_win_64_cuda12:
     strategy:
@@ -246,4 +246,4 @@ jobs:
       - name: Upload to conda
         shell: bash -l {0}
         run: |
-          anaconda -t ${{ secrets.ANACONDA_TOKEN_BASIC }} upload -u acellera pkg/*/openmm-*.tar.bz2 --skip-existing
+          anaconda -t ${{ secrets.ANACONDA_TOKEN_BASIC }} upload -u acellera pkg/*/openmm-*.conda --skip-existing
