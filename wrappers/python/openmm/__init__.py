@@ -23,14 +23,18 @@ if not os.path.exists(openmm_library_path):
         # lib is not under the package root.
         openmm_library_path = os.path.join(openmm_library_path, '..', 'Library', 'lib')
 
+print(f"XXX_OPENMM_LIBRARY_PATH: {openmm_library_path}")
 if sys.platform == 'win32':
+    print("XXX_WINDOWS!!!")
     _path = os.environ['PATH']
     os.environ['PATH'] = r'%(lib)s;%(lib)s\plugins;%(path)s' % {
         'lib': openmm_library_path, 'path': _path}
     try:
         with os.add_dll_directory(openmm_library_path):
             from . import _openmm
+        print("WORKED!!!")
     except:
+        print("FAILED!!!")
         pass
 
 from openmm.openmm import *
