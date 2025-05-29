@@ -16,12 +16,11 @@ if not os.path.exists(openmm_library_path):
     # The conda package installs all the libraries in the env/lib directory
     import site
 
-    sp_dir = site.getsitepackages()[0]
-    openmm_library_path = os.path.abspath(os.path.join(sp_dir, '..', '..'))
+    openmm_library_path = os.path.abspath(os.path.join(site.getsitepackages()[0], '..', '..'))
     if sys.platform == 'win32':
         # Don't move this in the next if below. it should only happen on conda packages where
         # lib is not under the package root.
-        openmm_library_path = os.path.join(openmm_library_path, 'Library', 'lib')
+        openmm_library_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'Library', 'lib')
 
 print(f"XXX_OPENMM_LIBRARY_PATH: {openmm_library_path}")
 if sys.platform == 'win32':
