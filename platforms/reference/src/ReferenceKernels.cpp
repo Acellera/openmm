@@ -60,6 +60,7 @@
 #include "ReferenceNoseHooverDynamics.h"
 #include "ReferencePointFunctions.h"
 #include "ReferenceProperDihedralBond.h"
+#include "ReferenceQTBDynamics.h"
 #include "ReferenceRbDihedralBond.h"
 #include "ReferenceRMSDForce.h"
 #include "ReferenceTabulatedFunction.h"
@@ -131,6 +132,11 @@ static map<string, double>& extractEnergyParameterDerivatives(ContextImpl& conte
     return *data->energyParameterDerivatives;
 }
 
+static ThreadPool& extractThreadPool(ContextImpl& context) {
+    ReferencePlatform::PlatformData* data = reinterpret_cast<ReferencePlatform::PlatformData*>(context.getPlatformData());
+    return data->threads;
+}
+
 /**
  * Make sure an expression doesn't use any undefined variables.
  */
@@ -180,7 +186,7 @@ double ReferenceCalcForcesAndEnergyKernel::finishComputation(ContextImpl& contex
     if (!includeForces)
         extractForces(context) = savedForces; // Restore the forces so computing the energy doesn't overwrite the forces with incorrect values.
     else
-        extractVirtualSites(context).distributeForces(context.getSystem(), extractPositions(context), extractForces(context));
+        extractVirtualSites(context).distributeForces(context.getSystem(), extractPositions(context), extractForces(context), extractBoxVectors(context));
     return 0.0;
 }
 
@@ -346,7 +352,7 @@ ReferenceApplyConstraintsKernel::~ReferenceApplyConstraintsKernel() {
 void ReferenceApplyConstraintsKernel::apply(ContextImpl& context, double tol) {
     vector<Vec3>& positions = extractPositions(context);
     extractConstraints(context).apply(positions, positions, inverseMasses, tol);
-    extractVirtualSites(context).computePositions(context.getSystem(), positions);
+    extractVirtualSites(context).computePositions(context.getSystem(), positions, extractBoxVectors(context));
 }
 
 void ReferenceApplyConstraintsKernel::applyToVelocities(ContextImpl& context, double tol) {
@@ -360,7 +366,7 @@ void ReferenceVirtualSitesKernel::initialize(const System& system) {
 
 void ReferenceVirtualSitesKernel::computePositions(ContextImpl& context) {
     vector<Vec3>& positions = extractPositions(context);
-    extractVirtualSites(context).computePositions(context.getSystem(), positions);
+    extractVirtualSites(context).computePositions(context.getSystem(), positions, extractBoxVectors(context));
 }
 
 void ReferenceCalcHarmonicBondForceKernel::initialize(const System& system, const HarmonicBondForce& force) {
@@ -1339,13 +1345,13 @@ double ReferenceCalcCustomNonbondedForceKernel::execute(ContextImpl& context, bo
     // Add in the long range correction.
     
     if (!hasInitializedLongRangeCorrection) {
-        ThreadPool threads;
+        ThreadPool& threads = extractThreadPool(context);
         longRangeCorrectionData = CustomNonbondedForceImpl::prepareLongRangeCorrection(*forceCopy, threads.getNumThreads());
         CustomNonbondedForceImpl::calcLongRangeCorrection(*forceCopy, longRangeCorrectionData, context.getOwner(), longRangeCoefficient, longRangeCoefficientDerivs, threads);
         hasInitializedLongRangeCorrection = true;
     }
     else if (globalParamsChanged && forceCopy != NULL) {
-        ThreadPool threads;
+        ThreadPool& threads = extractThreadPool(context);
         CustomNonbondedForceImpl::calcLongRangeCorrection(*forceCopy, longRangeCorrectionData, context.getOwner(), longRangeCoefficient, longRangeCoefficientDerivs, threads);
     }
     double volume = boxVectors[0][0]*boxVectors[1][1]*boxVectors[2][2];
@@ -1372,7 +1378,7 @@ void ReferenceCalcCustomNonbondedForceKernel::copyParametersToContext(ContextImp
     // If necessary, recompute the long range correction.
     
     if (forceCopy != NULL) {
-        ThreadPool threads;
+        ThreadPool& threads = extractThreadPool(context);
         longRangeCorrectionData = CustomNonbondedForceImpl::prepareLongRangeCorrection(force, threads.getNumThreads());
         CustomNonbondedForceImpl::calcLongRangeCorrection(force, longRangeCorrectionData, context.getOwner(), longRangeCoefficient, longRangeCoefficientDerivs, threads);
         hasInitializedLongRangeCorrection = true;
@@ -2329,7 +2335,7 @@ void ReferenceIntegrateVerletStepKernel::execute(ContextImpl& context, const Ver
         dynamics->setVirtualSites(extractVirtualSites(context));
         prevStepSize = stepSize;
     }
-    dynamics->update(context.getSystem(), posData, velData, forceData, masses, integrator.getConstraintTolerance());
+    dynamics->update(context.getSystem(), posData, velData, forceData, masses, integrator.getConstraintTolerance(), extractBoxVectors(context));
     data.time += stepSize;
     data.stepCount++;
 }
@@ -2377,7 +2383,8 @@ void ReferenceIntegrateNoseHooverStepKernel::execute(ContextImpl& context, const
         scaleVelocities(context, thermostatChain, scaleFactors);
     }
     dynamics->step2(context, context.getSystem(), posData, velData, forceData, masses, integrator.getConstraintTolerance(),
-                     integrator.getAllThermostatedIndividualParticles(), integrator.getAllThermostatedPairs(), integrator.getMaximumPairDistance());
+                     integrator.getAllThermostatedIndividualParticles(), integrator.getAllThermostatedPairs(), integrator.getMaximumPairDistance(),
+            extractBoxVectors(context));
     data.time += stepSize;
     data.stepCount++;
 }
@@ -2636,7 +2643,7 @@ void ReferenceIntegrateLangevinMiddleStepKernel::execute(ContextImpl& context, c
         prevFriction = friction;
         prevStepSize = stepSize;
     }
-    dynamics->update(context, posData, velData, masses, integrator.getConstraintTolerance());
+    dynamics->update(context, posData, velData, masses, integrator.getConstraintTolerance(), extractBoxVectors(context));
     data.time += stepSize;
     data.stepCount++;
 }
@@ -2681,7 +2688,7 @@ void ReferenceIntegrateBrownianStepKernel::execute(ContextImpl& context, const B
         prevFriction = friction;
         prevStepSize = stepSize;
     }
-    dynamics->update(context.getSystem(), posData, velData, forceData, masses, integrator.getConstraintTolerance());
+    dynamics->update(context.getSystem(), posData, velData, forceData, masses, integrator.getConstraintTolerance(), extractBoxVectors(context));
     data.time += stepSize;
     data.stepCount++;
 }
@@ -2725,7 +2732,7 @@ double ReferenceIntegrateVariableLangevinStepKernel::execute(ContextImpl& contex
     double maxStepSize = maxTime-data.time;
     if (integrator.getMaximumStepSize() > 0)
         maxStepSize = min(integrator.getMaximumStepSize(), maxStepSize);
-    dynamics->update(context.getSystem(), posData, velData, forceData, masses, maxStepSize, integrator.getConstraintTolerance());
+    dynamics->update(context.getSystem(), posData, velData, forceData, masses, maxStepSize, integrator.getConstraintTolerance(), extractBoxVectors(context));
     data.time += dynamics->getDeltaT();
     if (dynamics->getDeltaT() == maxStepSize)
         data.time = maxTime; // Avoid round-off error
@@ -2767,7 +2774,7 @@ double ReferenceIntegrateVariableVerletStepKernel::execute(ContextImpl& context,
     double maxStepSize = maxTime-data.time;
     if (integrator.getMaximumStepSize() > 0)
         maxStepSize = min(integrator.getMaximumStepSize(), maxStepSize);
-    dynamics->update(context.getSystem(), posData, velData, forceData, masses, maxStepSize, integrator.getConstraintTolerance());
+    dynamics->update(context.getSystem(), posData, velData, forceData, masses, maxStepSize, integrator.getConstraintTolerance(), extractBoxVectors(context));
     data.time += dynamics->getDeltaT();
     if (dynamics->getDeltaT() == maxStepSize)
         data.time = maxTime; // Avoid round-off error
@@ -2815,7 +2822,7 @@ void ReferenceIntegrateCustomStepKernel::execute(ContextImpl& context, CustomInt
     
     dynamics->setReferenceConstraintAlgorithm(&extractConstraints(context));
     dynamics->setVirtualSites(extractVirtualSites(context));
-    dynamics->update(context, context.getSystem().getNumParticles(), posData, velData, forceData, masses, globals, perDofValues, forcesAreValid, integrator.getConstraintTolerance());
+    dynamics->update(context, context.getSystem().getNumParticles(), posData, velData, forceData, masses, globals, perDofValues, forcesAreValid, integrator.getConstraintTolerance(), extractBoxVectors(context));
     
     // Record changed global variables.
     
@@ -2884,13 +2891,62 @@ void ReferenceIntegrateDPDStepKernel::execute(ContextImpl& context, const DPDInt
     dynamics->setPeriodicBoxVectors(extractBoxVectors(context));
     vector<Vec3>& posData = extractPositions(context);
     vector<Vec3>& velData = extractVelocities(context);
-    dynamics->update(context, posData, velData, masses, integrator.getConstraintTolerance());
+    dynamics->update(context, posData, velData, masses, integrator.getConstraintTolerance(), extractBoxVectors(context));
     data.time += integrator.getStepSize();
     data.stepCount++;
 }
 
 double ReferenceIntegrateDPDStepKernel::computeKineticEnergy(ContextImpl& context, const DPDIntegrator& integrator) {
     return computeShiftedKineticEnergy(context, masses, 0.0);
+}
+
+ReferenceIntegrateQTBStepKernel::~ReferenceIntegrateQTBStepKernel() {
+    if (dynamics != NULL)
+        delete dynamics;
+}
+
+void ReferenceIntegrateQTBStepKernel::initialize(const System& system, const QTBIntegrator& integrator) {
+    int numParticles = system.getNumParticles();
+    masses.resize(numParticles);
+    for (int i = 0; i < numParticles; ++i)
+        masses[i] = system.getParticleMass(i);
+    SimTKOpenMMUtilities::setRandomNumberSeed((unsigned int) integrator.getRandomNumberSeed());
+    dynamics = new ReferenceQTBDynamics(system, integrator);
+}
+
+void ReferenceIntegrateQTBStepKernel::execute(ContextImpl& context, const QTBIntegrator& integrator) {
+    double stepSize = integrator.getStepSize();
+    vector<Vec3>& posData = extractPositions(context);
+    vector<Vec3>& velData = extractVelocities(context);
+    if (!hasInitialized) {
+        hasInitialized = true;
+        dynamics->setReferenceConstraintAlgorithm(&extractConstraints(context));
+        dynamics->setVirtualSites(extractVirtualSites(context));
+    }
+    dynamics->setTemperature(integrator.getTemperature());
+    dynamics->update(context, posData, velData, masses, integrator.getConstraintTolerance(), extractBoxVectors(context), extractThreadPool(context));
+    data.time += stepSize;
+    data.stepCount++;
+}
+
+double ReferenceIntegrateQTBStepKernel::computeKineticEnergy(ContextImpl& context, const QTBIntegrator& integrator) {
+    return computeShiftedKineticEnergy(context, masses, 0.0);
+}
+
+void ReferenceIntegrateQTBStepKernel::getAdaptedFriction(ContextImpl& context, int particle, std::vector<double>& friction) const {
+    dynamics->getAdaptedFriction(particle, friction);
+}
+
+void ReferenceIntegrateQTBStepKernel::setAdaptedFriction(ContextImpl& context, int particle, const std::vector<double>& friction) {
+    dynamics->setAdaptedFriction(particle, friction);
+}
+
+void ReferenceIntegrateQTBStepKernel::createCheckpoint(ContextImpl& context, ostream& stream) const {
+    dynamics->createCheckpoint(stream);
+}
+
+void ReferenceIntegrateQTBStepKernel::loadCheckpoint(ContextImpl& context, istream& stream) {
+    dynamics->loadCheckpoint(stream);
 }
 
 ReferenceApplyAndersenThermostatKernel::~ReferenceApplyAndersenThermostatKernel() {
