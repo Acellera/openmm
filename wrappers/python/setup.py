@@ -122,6 +122,16 @@ if not release:
                        'isrelease': str(IS_RELEASED)})
 
 
+def _replace_name(name):
+    import pathlib
+    
+    pyproject_path = pathlib.Path(__file__).parent / "pyproject.toml"
+    with open(pyproject_path, 'r') as f:
+        pyproject_text = f.read()
+    pyproject_text = pyproject_text.replace("PLACEHOLDER", name)
+    with open(pyproject_path, 'w') as f:
+        f.write(pyproject_text)
+
 def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
                            minor_version_num=MINOR_VERSION_NUM,
                            build_info=BUILD_INFO):
@@ -162,12 +172,13 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
     (especially on recent GPUs) that make it truly unique among simulation codes.
     """
 
-    setupKeywords["name"] = "openmm-unofficial-cpu"
+    if os.getenv("ACCELERATOR", "").startswith("cpu"):
+        _replace_name("openmm-unofficial-cpu")
     if os.getenv("ACCELERATOR", "").startswith("hip"):
-        setupKeywords["name"] = "openmm-unofficial-hip"
+        _replace_name("openmm-unofficial-hip")
     if os.getenv("ACCELERATOR", "").startswith("cu"):
         cuda_ver = os.getenv("ACCELERATOR", "")[2:4]
-        setupKeywords["name"] = f"openmm-unofficial-cu{cuda_ver}"
+        _replace_name(f"openmm-unofficial-cu{cuda_ver}")
         setupKeywords["install_requires"] += [f'nvidia-cuda-runtime-cu{cuda_ver}',
                                               f'nvidia-cuda-nvcc-cu{cuda_ver}',
                                               f'nvidia-cuda-nvrtc-cu{cuda_ver}',
