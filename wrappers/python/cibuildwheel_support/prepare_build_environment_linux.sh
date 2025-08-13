@@ -18,6 +18,18 @@ if [ "$ACCELERATOR" == "cu118" ]; then
     ln -s cuda-11.8 /usr/local/cuda
 
     export CUDA_HOME="/usr/local/cuda"
+elif [ "$ACCELERATOR" == "cu120" ]; then
+    # Install CUDA 12.0
+    dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
+
+    dnf install --setopt=obsoletes=0 -y \
+        cuda-compiler-12-0-12.0.1-1 \
+        cuda-libraries-12-0-12.0.1-1 \
+        cuda-libraries-devel-12-0-12.0.1-1
+
+    ln -s cuda-12.0 /usr/local/cuda
+
+    export CUDA_HOME="/usr/local/cuda"
 elif [ "$ACCELERATOR" == "cu124" ]; then
     # Install CUDA 12.4
     dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo

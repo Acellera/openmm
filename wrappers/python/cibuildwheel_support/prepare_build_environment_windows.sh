@@ -10,6 +10,13 @@ if [ "$ACCELERATOR" == "cu118" ]; then
     # Move CUDA folder to a path without spaces
     mv "/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.8" /c/CUDA
     export CUDA_PATH="/c/CUDA"
+elif [ "$ACCELERATOR" == "cu120" ]; then
+    curl --netrc-optional -L -nv -o cuda.exe https://developer.download.nvidia.com/compute/cuda/12.0.0/local_installers/cuda_12.0.0_527.41_windows.exe
+    ./cuda.exe -s nvcc_12.0 nvrtc_12.0 nvrtc_dev_12.0 cudart_12.0 cufft_12.0 cufft_dev_12.0 cuda_profiler_api_12.0
+    rm cuda.exe
+    # Move CUDA folder to a path without spaces
+    mv "/c/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.0" /c/CUDA
+    export CUDA_PATH="/c/CUDA"
 elif [ "$ACCELERATOR" == "cu124" ]; then
     curl --netrc-optional -L -nv -o cuda.exe https://developer.download.nvidia.com/compute/cuda/12.4.0/local_installers/cuda_12.4.0_551.61_windows.exe
     ./cuda.exe -s nvcc_12.4 nvrtc_12.4 nvrtc_dev_12.4 cudart_12.4 cufft_12.4 cufft_dev_12.4 cuda_profiler_api_12.4

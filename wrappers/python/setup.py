@@ -162,8 +162,12 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
     (especially on recent GPUs) that make it truly unique among simulation codes.
     """
 
+    setupKeywords["name"] = "openmm-unofficial-cpu"
+    if os.getenv("ACCELERATOR", "").startswith("hip"):
+        setupKeywords["name"] = "openmm-unofficial-hip"
     if os.getenv("ACCELERATOR", "").startswith("cu"):
         cuda_ver = os.getenv("ACCELERATOR", "")[2:4]
+        setupKeywords["name"] = f"openmm-unofficial-cu{cuda_ver}"
         setupKeywords["install_requires"] += [f'nvidia-cuda-runtime-cu{cuda_ver}',
                                               f'nvidia-cuda-nvcc-cu{cuda_ver}',
                                               f'nvidia-cuda-nvrtc-cu{cuda_ver}',
