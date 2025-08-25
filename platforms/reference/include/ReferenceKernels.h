@@ -1149,6 +1149,33 @@ private:
 };
 
 /**
+ * This kernel is invoked by RGForce to calculate the forces acting on the system and the energy of the system.
+ */
+class ReferenceCalcRGForceKernel : public CalcRGForceKernel {
+public:
+    ReferenceCalcRGForceKernel(std::string name, const Platform& platform) : CalcRGForceKernel(name, platform) {
+    }
+    /**
+     * Initialize the kernel.
+     *
+     * @param system     the System this kernel will be applied to
+     * @param force      the RGForce this kernel will be used for
+     */
+    void initialize(const System& system, const RGForce& force);
+    /**
+     * Execute the kernel to calculate the forces and/or energy.
+     *
+     * @param context        the context in which to execute this kernel
+     * @param includeForces  true if forces should be calculated
+     * @param includeEnergy  true if the energy should be calculated
+     * @return the potential energy due to the force
+     */
+    double execute(ContextImpl& context, bool includeForces, bool includeEnergy);
+private:
+    std::vector<int> particles;
+};
+
+/**
  * This kernel is invoked by VerletIntegrator to take one time step.
  */
 class ReferenceIntegrateVerletStepKernel : public IntegrateVerletStepKernel {
@@ -1740,7 +1767,7 @@ public:
     }
     /**
      * Initialize the kernel.
-     * 
+     *
      * @param system     the System this kernel will be applied to
      * @param force      the ATMForce this kernel will be used for
      */
@@ -1774,8 +1801,12 @@ public:
     void copyState(ContextImpl& context, ContextImpl& innerContext0, ContextImpl& innerContext1);
 private:
     int numParticles;
-    std::vector<Vec3> displ1;
-    std::vector<Vec3> displ0;
+    std::vector<Vec3> displ1, displ0;
+    std::vector<Vec3> displacement1, displacement0;
+    std::vector<int> pj1, pi1, pj0, pi0;
+    void setDisplacements(std::vector<Vec3>& pos);
+    void displForces(std::vector<Vec3>& force0, std::vector<Vec3>& force1);
+    void loadParams(int numParticles, const ATMForce& force);
 };
 
 /**
