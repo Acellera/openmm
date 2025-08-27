@@ -9,14 +9,25 @@ __author__ = "Peter Eastman"
 
 import os, os.path
 import sys
-from . import version
+
+
+openmm_library_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'lib'))
+if not os.path.exists(openmm_library_path):
+    # The conda package installs all the libraries in the env/lib directory
+    import site
+
+    openmm_library_path = os.path.abspath(os.path.join(site.getsitepackages()[0], '..', '..'))
+    if sys.platform == 'win32':
+        # Don't move this in the next if below. it should only happen on conda packages where
+        # lib is not under the package root.
+        openmm_library_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'Library', 'lib')
 
 if sys.platform == 'win32':
     _path = os.environ['PATH']
     os.environ['PATH'] = r'%(lib)s;%(lib)s\plugins;%(path)s' % {
-        'lib': version.openmm_library_path, 'path': _path}
+        'lib': openmm_library_path, 'path': _path}
     try:
-        with os.add_dll_directory(version.openmm_library_path):
+        with os.add_dll_directory(openmm_library_path):
             from . import _openmm
     except:
         pass
@@ -26,8 +37,8 @@ from openmm.vec3 import Vec3
 from openmm.mtsintegrator import MTSIntegrator, MTSLangevinIntegrator
 from openmm.amd import AMDIntegrator, AMDForceGroupIntegrator, DualAMDIntegrator
 
-if os.getenv('OPENMM_PLUGIN_DIR') is None and os.path.isdir(version.openmm_library_path):
-    pluginLoadedLibNames = Platform.loadPluginsFromDirectory(os.path.join(version.openmm_library_path, 'plugins'))
+if os.getenv('OPENMM_PLUGIN_DIR') is None and os.path.isdir(openmm_library_path):
+    pluginLoadedLibNames = Platform.loadPluginsFromDirectory(os.path.join(openmm_library_path, 'plugins'))
 else:
     pluginLoadedLibNames = Platform.loadPluginsFromDirectory(Platform.getDefaultPluginsDirectory())
 
@@ -39,3 +50,5 @@ __version__ = Platform.getOpenMMVersion()
 class OpenMMException(Exception):
     """This is the class used for all exceptions thrown by the C++ library."""
     pass
+
+from . import version

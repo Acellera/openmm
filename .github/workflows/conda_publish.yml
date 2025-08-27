@@ -1,0 +1,249 @@
+name: Test code and publish package
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  deploy_linux_cuda11:
+    strategy:
+      fail-fast: false
+      matrix:
+        config_file:
+          [
+            "conda_package/variants/linux_64_c_compiler_version11cuda_compilernvcccuda_compiler_version11.8cxx_compiler_version11numpy1.22python3.9.____cpython.yaml",
+            "conda_package/variants/linux_64_c_compiler_version11cuda_compilernvcccuda_compiler_version11.8cxx_compiler_version11numpy1.22python3.10.____cpython.yaml",
+            "conda_package/variants/linux_64_c_compiler_version11cuda_compilernvcccuda_compiler_version11.8cxx_compiler_version11numpy1.23python3.11.____cpython.yaml",
+            "conda_package/variants/linux_64_c_compiler_version11cuda_compilernvcccuda_compiler_version11.8cxx_compiler_version11numpy1.26python3.12.____cpython.yaml",
+          ]
+
+    runs-on: ubuntu-latest
+    container: quay.io/condaforge/linux-anvil-cuda:11.8
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Build openmm package
+        shell: bash -l {0}
+        run: |
+          git config --global --add safe.directory '*'
+          conda build conda_package/recipe/ --variant-config-files ${{ matrix.config_file }} --output-folder ./pkg/ --no-include-recipe --no-anaconda-upload -c conda-forge
+        env:
+          OPENMM_VERSION: ${{ github.ref_name }}
+          OPENMM_COMMIT: ${{ github.sha }}
+
+      - name: Upload to conda
+        shell: bash -l {0}
+        run: |
+          /opt/conda/bin/anaconda -t ${{ secrets.ANACONDA_TOKEN_BASIC }} upload -u acellera pkg/linux-64/openmm-*.tar.bz2 --skip-existing
+
+  deploy_linux_cuda12:
+    strategy:
+      fail-fast: false
+      matrix:
+        config_file:
+          [
+            "conda_package/variants/linux_64_c_compiler_version12cuda_compilercuda-nvcccuda_compiler_version12.0cxx_compiler_version12numpy1.22python3.9.____cpython.yaml",
+            "conda_package/variants/linux_64_c_compiler_version12cuda_compilercuda-nvcccuda_compiler_version12.0cxx_compiler_version12numpy1.22python3.10.____cpython.yaml",
+            "conda_package/variants/linux_64_c_compiler_version12cuda_compilercuda-nvcccuda_compiler_version12.0cxx_compiler_version12numpy1.23python3.11.____cpython.yaml",
+            "conda_package/variants/linux_64_c_compiler_version12cuda_compilercuda-nvcccuda_compiler_version12.0cxx_compiler_version12numpy1.26python3.12.____cpython.yaml",
+          ]
+
+    runs-on: ubuntu-latest
+    container: quay.io/condaforge/linux-anvil-cos7-x86_64
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Build openmm package
+        shell: bash -l {0}
+        run: |
+          git config --global --add safe.directory '*'
+          conda build conda_package/recipe/ --variant-config-files ${{ matrix.config_file }} --output-folder ./pkg/ --no-include-recipe --no-anaconda-upload -c conda-forge
+        env:
+          OPENMM_VERSION: ${{ github.ref_name }}
+          OPENMM_COMMIT: ${{ github.sha }}
+
+      - name: Upload to conda
+        shell: bash -l {0}
+        run: |
+          /opt/conda/bin/anaconda -t ${{ secrets.ANACONDA_TOKEN_BASIC }} upload -u acellera pkg/linux-64/openmm-*.tar.bz2 --skip-existing
+
+  deploy_osx_64:
+    strategy:
+      fail-fast: false
+      matrix:
+        config_file:
+          [
+            "conda_package/variants/osx_64_numpy1.22opencl_implapplepython3.9.____cpython.yaml",
+            "conda_package/variants/osx_64_numpy1.22opencl_implapplepython3.9.____cpython.yaml",
+            "conda_package/variants/osx_64_numpy1.22opencl_implkhronospython3.10.____cpython.yaml",
+            "conda_package/variants/osx_64_numpy1.22opencl_implkhronospython3.9.____cpython.yaml",
+            "conda_package/variants/osx_64_numpy1.23opencl_implapplepython3.11.____cpython.yaml",
+            "conda_package/variants/osx_64_numpy1.23opencl_implkhronospython3.11.____cpython.yaml",
+            "conda_package/variants/osx_64_numpy1.26opencl_implapplepython3.12.____cpython.yaml",
+            "conda_package/variants/osx_64_numpy1.26opencl_implkhronospython3.12.____cpython.yaml",
+          ]
+    runs-on: macos-13
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          activate-environment: ../deploy-env
+          python-version: "3.10"
+
+      - name: Build openmm package
+        shell: bash -l {0}
+        run: |
+          git config --global --add safe.directory '*'
+          conda install anaconda-client conda-build
+          conda build conda_package/recipe/ --variant-config-files ${{ matrix.config_file }} --output-folder ./pkg/ --no-include-recipe --no-anaconda-upload -c conda-forge
+        env:
+          OPENMM_VERSION: ${{ github.ref_name }}
+          OPENMM_COMMIT: ${{ github.sha }}
+
+      - name: Upload to conda
+        shell: bash -l {0}
+        run: |
+          anaconda -t ${{ secrets.ANACONDA_TOKEN_BASIC }} upload -u acellera pkg/*/openmm-*.conda --skip-existing
+
+  deploy_osx_arm64:
+    strategy:
+      fail-fast: false
+      matrix:
+        config_file:
+          [
+            "conda_package/variants/osx_arm64_numpy1.22opencl_implapplepython3.10.____cpython.yaml",
+            "conda_package/variants/osx_arm64_numpy1.22opencl_implapplepython3.9.____cpython.yaml",
+            "conda_package/variants/osx_arm64_numpy1.22opencl_implkhronospython3.10.____cpython.yaml",
+            "conda_package/variants/osx_arm64_numpy1.22opencl_implkhronospython3.9.____cpython.yaml",
+            "conda_package/variants/osx_arm64_numpy1.23opencl_implapplepython3.11.____cpython.yaml",
+            "conda_package/variants/osx_arm64_numpy1.23opencl_implkhronospython3.11.____cpython.yaml",
+            "conda_package/variants/osx_arm64_numpy1.26opencl_implapplepython3.12.____cpython.yaml",
+            "conda_package/variants/osx_arm64_numpy1.26opencl_implkhronospython3.12.____cpython.yaml",
+          ]
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          activate-environment: ../deploy-env
+          python-version: "3.10"
+
+      - name: Build openmm package
+        shell: bash -l {0}
+        run: |
+          git config --global --add safe.directory '*'
+          conda install anaconda-client conda-build
+          conda build conda_package/recipe/ --variant-config-files ${{ matrix.config_file }} --output-folder ./pkg/ --no-include-recipe --no-anaconda-upload -c conda-forge
+        env:
+          OPENMM_VERSION: ${{ github.ref_name }}
+          OPENMM_COMMIT: ${{ github.sha }}
+
+      - name: Upload to conda
+        shell: bash -l {0}
+        run: |
+          anaconda -t ${{ secrets.ANACONDA_TOKEN_BASIC }} upload -u acellera pkg/*/openmm-*.conda --skip-existing
+
+  deploy_win_64_cuda11:
+    strategy:
+      fail-fast: false
+      matrix:
+        config_file:
+          [
+            "conda_package/variants/win_64_cuda_compilernvcccuda_compiler_version11.8numpy1.22python3.10.____cpython.yaml",
+            "conda_package/variants/win_64_cuda_compilernvcccuda_compiler_version11.8numpy1.22python3.9.____cpython.yaml",
+            "conda_package/variants/win_64_cuda_compilernvcccuda_compiler_version11.8numpy1.23python3.11.____cpython.yaml",
+            "conda_package/variants/win_64_cuda_compilernvcccuda_compiler_version11.8numpy1.26python3.12.____cpython.yaml",
+          ]
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          activate-environment: ../deploy-env
+          python-version: "3.10"
+          channels: conda-forge
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup CUDA Toolkit
+        id: cuda-toolkit
+        shell: pwsh
+        run: conda_package/scripts/setup_cuda.ps1
+        env:
+          INPUT_CUDA_VERSION: 11.8.0
+
+      - name: Build openmm package
+        shell: bash -l {0}
+        run: |
+          git config --global --add safe.directory '*'
+          conda install anaconda-client conda-build
+          conda clean --all -y
+          conda build conda_package/recipe/ --variant-config-files ${{ matrix.config_file }} --output-folder ./pkg/ --no-include-recipe --no-anaconda-upload -c conda-forge
+        env:
+          OPENMM_VERSION: ${{ github.ref_name }}
+          OPENMM_COMMIT: ${{ github.sha }}
+
+      - name: Upload to conda
+        shell: bash -l {0}
+        run: |
+          anaconda -t ${{ secrets.ANACONDA_TOKEN_BASIC }} upload -u acellera pkg/*/openmm-*.conda --skip-existing
+
+  deploy_win_64_cuda12:
+    strategy:
+      fail-fast: false
+      matrix:
+        config_file:
+          [
+            "conda_package/variants/win_64_cuda_compilercuda-nvcccuda_compiler_version12.0numpy1.22python3.10.____cpython.yaml",
+            "conda_package/variants/win_64_cuda_compilercuda-nvcccuda_compiler_version12.0numpy1.22python3.9.____cpython.yaml",
+            "conda_package/variants/win_64_cuda_compilercuda-nvcccuda_compiler_version12.0numpy1.23python3.11.____cpython.yaml",
+            "conda_package/variants/win_64_cuda_compilercuda-nvcccuda_compiler_version12.0numpy1.26python3.12.____cpython.yaml",
+          ]
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          activate-environment: ../deploy-env
+          python-version: "3.10"
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup CUDA Toolkit
+        id: cuda-toolkit
+        shell: pwsh
+        run: conda_package/scripts/setup_cuda.ps1
+        env:
+          INPUT_CUDA_VERSION: 12.0.0
+
+      - name: Build openmm package
+        shell: bash -l {0}
+        run: |
+          git config --global --add safe.directory '*'
+          conda install anaconda-client conda-build
+          conda clean --all -y
+          conda build conda_package/recipe/ --variant-config-files ${{ matrix.config_file }} --output-folder ./pkg/ --no-include-recipe --no-anaconda-upload -c conda-forge
+        env:
+          OPENMM_VERSION: ${{ github.ref_name }}
+          OPENMM_COMMIT: ${{ github.sha }}
+
+      - name: Upload to conda
+        shell: bash -l {0}
+        run: |
+          anaconda -t ${{ secrets.ANACONDA_TOKEN_BASIC }} upload -u acellera pkg/*/openmm-*.conda --skip-existing
