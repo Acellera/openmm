@@ -179,11 +179,18 @@ def buildKeywordDictionary(major_version_num=MAJOR_VERSION_NUM,
     if os.getenv("ACCELERATOR", "").startswith("cu"):
         cuda_ver = os.getenv("ACCELERATOR", "")[2:4]
         _replace_name(f"openmm-unofficial-cu{cuda_ver}")
-        setupKeywords["install_requires"] += [f'nvidia-cuda-runtime-cu{cuda_ver}',
-                                              f'nvidia-cuda-nvcc-cu{cuda_ver}',
-                                              f'nvidia-cuda-nvrtc-cu{cuda_ver}',
-                                              f'nvidia-cuda-cupti-cu{cuda_ver}',
-                                              f'nvidia-cufft-cu{cuda_ver}']
+        if cuda_ver == "12":
+            setupKeywords["install_requires"] += ['nvidia-cuda-runtime-cu12==12.4.99',
+                                                  'nvidia-cuda-nvcc-cu12==12.4.99',
+                                                  'nvidia-cuda-nvrtc-cu12==12.4.99',
+                                                  'nvidia-cuda-cupti-cu12==12.4.99',
+                                                  'nvidia-cufft-cu12==11.2.3.18']
+        elif cuda_ver == "11":
+            setupKeywords["install_requires"] += ['nvidia-cuda-runtime-cu11==11.8.89',
+                                                  'nvidia-cuda-nvcc-cu11==11.8.89',
+                                                  'nvidia-cuda-nvrtc-cu11==11.8.89',
+                                                  'nvidia-cuda-cupti-cu11==11.8.87',
+                                                  'nvidia-cufft-cu11==10.9.0.58']
 
     define_macros = [('MAJOR_VERSION', major_version_num),
                      ('MINOR_VERSION', minor_version_num)]
